@@ -1,0 +1,8 @@
+{
+  "name": "Exam Veda",
+  "description": "Study data organizer with category grids, chapter study notes reader, raw text MCQ parser, interactive mock tests with analysis, and Veda AI multi-agent study tutor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

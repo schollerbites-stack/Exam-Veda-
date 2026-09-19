@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background deep navy gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#071b4a" />
+      <stop offset="100%" stop-color="#030c27" />
+    </linearGradient>
+
+    <!-- Book left page cyan/blue gradient -->
+    <linearGradient id="leftPageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1268f4" />
+      <stop offset="100%" stop-color="#0099ff" />
+    </linearGradient>
+
+    <!-- Book right page azure blue gradient -->
+    <linearGradient id="rightPageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00aaff" />
+      <stop offset="100%" stop-color="#0a5cdb" />
+    </linearGradient>
+
+    <!-- Glowing light effect filter -->
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00b4ff" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- App Icon rounded squircle background (Dark Navy #041238) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <g transform="translate(0, 0)">
+    <!-- OUTER BOOK COVER FRAMES (White thick outline) -->
+    <!-- Left Cover Flap -->
+    <path d="M 148 160 L 168 232 C 180 236 210 248 248 266 C 210 242 165 240 152 232 Z" fill="#ffffff" />
+    <path d="M 148 160 L 170 232 C 172 238 180 246 228 266 L 222 280 C 170 258 152 248 140 232 Z" fill="#ffffff" opacity="0.9" />
+
+    <!-- Left outer frame bracket -->
+    <path d="M 148 160 L 170 232 L 246 270 C 218 248 178 244 162 232 L 148 160 Z" fill="#ffffff" />
+    <path d="M 148 160 L 152 230 C 158 244 192 262 246 276 L 246 288 C 182 272 142 250 134 230 L 132 160 Z" fill="#ffffff" />
+
+    <!-- Right outer frame bracket -->
+    <path d="M 364 160 L 360 230 C 354 244 320 262 266 276 L 266 288 C 330 272 370 250 378 230 L 380 160 Z" fill="#ffffff" />
+
+    <!-- Book Spine Center V notch -->
+    <path d="M 256 274 L 242 292 L 256 288 L 270 292 Z" fill="#ffffff" />
+
+    <!-- BOOK PAGES (Vibrant glowing blue open book) -->
+    <!-- Left Page -->
+    <path d="M 174 150 C 174 150 216 168 248 186 L 248 266 C 214 244 182 228 174 220 Z" fill="url(#leftPageGrad)" filter="url(#glow)" />
+    
+    <!-- Right Page -->
+    <path d="M 338 150 C 338 150 296 168 264 186 L 264 266 C 298 244 330 228 338 220 Z" fill="url(#rightPageGrad)" filter="url(#glow)" />
+
+    <!-- Inner Spine Divider line -->
+    <path d="M 256 182 L 256 272" stroke="#051945" stroke-width="4" stroke-linecap="round" />
+
+    <!-- GRADUATION CAP (MORTARBOARD) -->
+    <!-- Mortarboard Top (Diamond Cap in Crisp White) -->
+    <polygon points="256,86 388,142 256,198 124,142" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" />
+    
+    <!-- Skull Cap Base underneath -->
+    <path d="M 198 166 L 198 190 C 198 214 314 214 314 190 L 314 166 C 298 178 278 184 256 184 C 234 184 214 178 198 166 Z" fill="#ffffff" />
+
+    <!-- Tassel Button & Cord hanging to the right -->
+    <circle cx="256" cy="142" r="5" fill="#cbd5e1" />
+    <path d="M 256 142 Q 330 148 322 192" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+    <!-- Tassel Head and fringe -->
+    <ellipse cx="322" cy="195" rx="5" ry="7" fill="#ffffff" />
+    <line x1="322" y1="202" x2="322" y2="216" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+
+    <!-- TYPOGRAPHY: "Exam" in crisp white, "Veda" in bright azure cyan blue -->
+    <!-- "Exam" -->
+    <text x="256" y="368" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Montserrat', 'Inter', 'Segoe UI', Arial, sans-serif" font-weight="900" font-size="76" letter-spacing="-1.5" fill="#ffffff">Exam</text>
+    
+    <!-- "Veda" -->
+    <text x="256" y="442" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Montserrat', 'Inter', 'Segoe UI', Arial, sans-serif" font-weight="900" font-size="76" letter-spacing="-1.5" fill="#1b8aff">Veda</text>
+  </g>
+</svg>
