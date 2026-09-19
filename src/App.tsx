@@ -98,8 +98,80 @@ export default function App() {
     return [];
   });
 
-  // Active View navigation
-  const [activeView, setActiveView] = useState<ActiveView>({ type: 'categories' });
+  // Active View navigation with browser history sync
+  const [activeView, setActiveView] = useState<ActiveView>(() => {
+    if (typeof window !== 'undefined' && window.history.state?.activeView) {
+      return window.history.state.activeView;
+    }
+    return { type: 'categories' };
+  });
+
+  // Keep a ref to activeView to avoid race conditions or circular loops
+  const activeViewRef = React.useRef(activeView);
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
+
+  // Synchronize history states on mount & handle popstate (device hardware back, Android back gesture, browser back button)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // If initial history entry has no state, initialize it with step 0
+    if (!window.history.state || !window.history.state.activeView) {
+      window.history.replaceState({ activeView: { type: 'categories' }, step: 0 }, '');
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const stateView = event.state?.activeView as ActiveView | undefined;
+      if (stateView) {
+        setActiveView(stateView);
+      } else {
+        // Returned to root without state, fallback to categories
+        setActiveView({ type: 'categories' });
+      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // Central Navigation Handler: pushes to browser history so hardware/browser back goes step-by-step
+  const navigateTo = React.useCallback((newView: ActiveView, replace = false) => {
+    const currentView = activeViewRef.current;
+    // Don't push duplicate entry for identical view
+    if (!replace && JSON.stringify(currentView) === JSON.stringify(newView)) {
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      const currentStep = (window.history.state?.step as number) ?? 0;
+      if (replace) {
+        window.history.replaceState({ activeView: newView, step: currentStep }, '');
+      } else {
+        window.history.pushState({ activeView: newView, step: currentStep + 1 }, '');
+      }
+    }
+
+    setActiveView(newView);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, []);
+
+  // Back Navigation Helper: if browser history has depth, uses history.back(); otherwise navigates to fallback
+  const navigateBack = React.useCallback((fallbackView: ActiveView = { type: 'categories' }) => {
+    if (typeof window !== 'undefined') {
+      const currentStep = (window.history.state?.step as number) ?? 0;
+      if (currentStep > 0) {
+        window.history.back();
+        return;
+      }
+    }
+    navigateTo(fallbackView, true);
+  }, [navigateTo]);
 
   // Sync state to localStorage
   useEffect(() => {
@@ -153,7 +225,7 @@ export default function App() {
     tab: 'upload' | 'categories' | 'lessons' = 'upload',
     catId?: string
   ) => {
-    setActiveView({
+    navigateTo({
       type: 'admin',
       initialTab: tab,
       defaultCategoryId: catId,
@@ -173,7 +245,7 @@ export default function App() {
     setCategories(prev => prev.filter(c => c.id !== categoryId));
     setLessons(prev => prev.filter(l => l.categoryId !== categoryId));
     if (activeView.type === 'category_detail' && activeView.categoryId === categoryId) {
-      setActiveView({ type: 'categories' });
+      navigateTo({ type: 'categories' }, true);
     }
   };
 
@@ -201,7 +273,7 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEY_CATEGORIES);
     localStorage.removeItem(STORAGE_KEY_LESSONS);
     localStorage.removeItem(STORAGE_KEY_HISTORY);
-    setActiveView({ type: 'categories' });
+    navigateTo({ type: 'categories' }, true);
   };
 
   const handleClearAllData = () => {
@@ -211,7 +283,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEY_LESSONS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify([]));
-    setActiveView({ type: 'categories' });
+    navigateTo({ type: 'categories' }, true);
   };
 
   // Calculations for Stats
@@ -227,16 +299,16 @@ export default function App() {
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-20">
       {/* Offline Status Alert */}
       <OfflineIndicator
-        onNavigateToNotes={() => setActiveView({ type: 'notes_hub' })}
-        onNavigateToHistory={() => setActiveView({ type: 'history' })}
+        onNavigateToNotes={() => navigateTo({ type: 'notes_hub' })}
+        onNavigateToHistory={() => navigateTo({ type: 'history' })}
       />
 
       {/* Top Navbar (hidden on full-screen views like Admin, AI Tutor, Quiz, and NoteViewer) */}
       {!isFullscreenView && (
         <Navbar
           activeView={activeView}
-          onNavigate={view => setActiveView(view)}
-          onNavigateHome={() => setActiveView({ type: 'categories' })}
+          onNavigate={view => navigateTo(view)}
+          onNavigateHome={() => navigateTo({ type: 'categories' })}
           onOpenAdmin={handleOpenAdmin}
           soundEnabled={soundEnabled}
           onToggleSound={() => setSoundEnabled(!soundEnabled)}
@@ -255,9 +327,9 @@ export default function App() {
             categories={categories}
             lessons={lessons}
             onSelectCategory={(catId, initialTab) =>
-              setActiveView({ type: 'category_detail', categoryId: catId, initialTab })
+              navigateTo({ type: 'category_detail', categoryId: catId, initialTab })
             }
-            onOpenNotes={() => setActiveView({ type: 'notes_hub' })}
+            onOpenNotes={() => navigateTo({ type: 'notes_hub' })}
             onOpenAdmin={handleOpenAdmin}
           />
         )}
@@ -270,7 +342,7 @@ export default function App() {
               <div className="max-w-md mx-auto my-12 text-center p-6 bg-white rounded-2xl border border-slate-200">
                 <p className="text-sm text-slate-700">श्रेणी नहीं मिली।</p>
                 <button
-                  onClick={() => setActiveView({ type: 'categories' })}
+                  onClick={() => navigateTo({ type: 'categories' }, true)}
                   className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
                 >
                   होम पर जाएं
@@ -284,10 +356,10 @@ export default function App() {
               category={currentCategory}
               lessons={lessons}
               initialTab={activeView.initialTab || 'questions'}
-              onBack={() => setActiveView({ type: 'categories' })}
-              onStartQuiz={lessonId => setActiveView({ type: 'quiz', lessonId })}
+              onBack={() => navigateBack({ type: 'categories' })}
+              onStartQuiz={lessonId => navigateTo({ type: 'quiz', lessonId })}
               onReadNote={lessonId => {
-                setActiveView({
+                navigateTo({
                   type: 'note_viewer',
                   lessonId,
                   returnView: {
@@ -314,7 +386,7 @@ export default function App() {
               <div className="max-w-md mx-auto my-12 text-center p-6 bg-white rounded-2xl border border-slate-200">
                 <p className="text-sm text-slate-700">लेसन नहीं मिला।</p>
                 <button
-                  onClick={() => setActiveView({ type: 'categories' })}
+                  onClick={() => navigateTo({ type: 'categories' }, true)}
                   className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
                 >
                   होम पर जाएं
@@ -333,17 +405,18 @@ export default function App() {
               onFinishQuiz={result => {
                 // Save to persistent test history
                 setHistory(prev => [result, ...prev]);
-                setActiveView({
+                // Replace quiz state with analysis so pressing back from analysis returns to lessons, not the finished quiz
+                navigateTo({
                   type: 'quiz_analysis',
                   result,
                   lessonId: currentLesson.id,
-                });
+                }, true);
               }}
               onExitQuiz={() => {
                 if (currentLesson.categoryId) {
-                  setActiveView({ type: 'category_detail', categoryId: currentLesson.categoryId });
+                  navigateBack({ type: 'category_detail', categoryId: currentLesson.categoryId });
                 } else {
-                  setActiveView({ type: 'categories' });
+                  navigateBack({ type: 'categories' });
                 }
               }}
             />
@@ -358,7 +431,7 @@ export default function App() {
               <div className="max-w-md mx-auto my-12 text-center p-6 bg-white rounded-2xl border border-slate-200">
                 <p className="text-sm text-slate-700">लेसन डेटा उपलब्ध नहीं है।</p>
                 <button
-                  onClick={() => setActiveView({ type: 'categories' })}
+                  onClick={() => navigateTo({ type: 'categories' }, true)}
                   className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
                 >
                   होम पर जाएं
@@ -372,16 +445,16 @@ export default function App() {
               result={activeView.result}
               lesson={currentLesson}
               onRetake={() => {
-                setActiveView({ type: 'quiz', lessonId: currentLesson.id });
+                navigateTo({ type: 'quiz', lessonId: currentLesson.id });
               }}
               onBackToCategory={() => {
-                setActiveView({ type: 'category_detail', categoryId: currentLesson.categoryId });
+                navigateBack({ type: 'category_detail', categoryId: currentLesson.categoryId });
               }}
               onNavigateHome={() => {
-                setActiveView({ type: 'categories' });
+                navigateTo({ type: 'categories' });
               }}
               onReadNotes={() => {
-                setActiveView({
+                navigateTo({
                   type: 'note_viewer',
                   lessonId: currentLesson.id,
                   returnView: {
@@ -392,7 +465,7 @@ export default function App() {
                 });
               }}
               onAskAI={query => {
-                setActiveView({ type: 'ai_tutor', initialQuery: query });
+                navigateTo({ type: 'ai_tutor', initialQuery: query });
               }}
             />
           );
@@ -405,20 +478,20 @@ export default function App() {
             categories={categories}
             lessons={lessons}
             onReviewAttempt={attempt => {
-              setActiveView({
+              navigateTo({
                 type: 'quiz_analysis',
                 result: attempt,
                 lessonId: attempt.lessonId,
               });
             }}
             onRetakeLesson={lessonId => {
-              setActiveView({ type: 'quiz', lessonId });
+              navigateTo({ type: 'quiz', lessonId });
             }}
             onDeleteAttempt={attemptId => {
               setHistory(prev => prev.filter(h => h.id !== attemptId));
             }}
             onClearHistory={() => setHistory([])}
-            onNavigateHome={() => setActiveView({ type: 'categories' })}
+            onNavigateHome={() => navigateBack({ type: 'categories' })}
           />
         )}
 
@@ -430,17 +503,17 @@ export default function App() {
             selectedCategoryId={activeView.categoryId}
             savedOfflineNoteIds={savedOfflineNoteIds}
             onReadNote={(lessonId: string) => {
-              setActiveView({
+              navigateTo({
                 type: 'note_viewer',
                 lessonId,
                 returnView: { type: 'notes_hub', categoryId: activeView.categoryId },
               });
             }}
             onStartQuiz={(lessonId: string) => {
-              setActiveView({ type: 'quiz', lessonId });
+              navigateTo({ type: 'quiz', lessonId });
             }}
             onOpenAdmin={handleOpenAdmin}
-            onNavigateHome={() => setActiveView({ type: 'categories' })}
+            onNavigateHome={() => navigateBack({ type: 'categories' })}
           />
         )}
 
@@ -452,7 +525,7 @@ export default function App() {
               <div className="max-w-md mx-auto my-12 text-center p-6 bg-white rounded-2xl border border-slate-200">
                 <p className="text-sm text-slate-700">नोट्स या लेसन नहीं मिला।</p>
                 <button
-                  onClick={() => setActiveView({ type: 'categories' })}
+                  onClick={() => navigateTo({ type: 'categories' }, true)}
                   className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer"
                 >
                   होम पर जाएं
@@ -473,9 +546,9 @@ export default function App() {
               onToggleSaveOffline={handleToggleSaveOfflineNote}
               onBack={() => {
                 if (activeView.returnView) {
-                  setActiveView(activeView.returnView);
+                  navigateBack(activeView.returnView);
                 } else {
-                  setActiveView({
+                  navigateBack({
                     type: 'category_detail',
                     categoryId: currentLesson.categoryId,
                     initialTab: 'notes',
@@ -483,17 +556,17 @@ export default function App() {
                 }
               }}
               onStartQuiz={(lessonId: string) => {
-                setActiveView({ type: 'quiz', lessonId });
+                navigateTo({ type: 'quiz', lessonId });
               }}
               onSelectLesson={(lessonId: string) => {
-                setActiveView({
+                navigateTo({
                   type: 'note_viewer',
                   lessonId,
                   returnView: activeView.returnView,
                 });
               }}
               onAskAI={(query: string) => {
-                setActiveView({
+                navigateTo({
                   type: 'ai_tutor',
                   initialQuery: query,
                 });
@@ -506,7 +579,7 @@ export default function App() {
         {activeView.type === 'ai_tutor' && (
           <AITutorChat
             initialQuery={activeView.initialQuery}
-            onNavigateHome={() => setActiveView({ type: 'categories' })}
+            onNavigateHome={() => navigateBack({ type: 'categories' })}
           />
         )}
 
@@ -524,8 +597,8 @@ export default function App() {
             onDeleteLesson={handleDeleteLesson}
             onResetData={handleResetData}
             onClearAllData={handleClearAllData}
-            onNavigateHome={() => setActiveView({ type: 'categories' })}
-            onStartQuiz={lessonId => setActiveView({ type: 'quiz', lessonId })}
+            onNavigateHome={() => navigateBack({ type: 'categories' })}
+            onStartQuiz={lessonId => navigateTo({ type: 'quiz', lessonId })}
           />
         )}
       </main>
@@ -545,7 +618,7 @@ export default function App() {
       {activeView.type !== 'quiz' && activeView.type !== 'note_viewer' && (
         <BottomNav
           activeView={activeView}
-          onNavigate={view => setActiveView(view)}
+          onNavigate={view => navigateTo(view)}
           onOpenAdmin={handleOpenAdmin}
           historyCount={history.length}
         />

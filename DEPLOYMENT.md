@@ -69,9 +69,16 @@ Exam Veda में `vercel.json` पहले से शामिल है, �
 
 ## 5. 📱 Web to Mobile App (Android APK / PWA बनाना)
 
-Exam Veda में **Progressive Web App (PWA)**, ऑटो-अपडेटिंग सर्विस वर्कर और मेनिफेस्ट पहले से कॉन्फ़िगर है।
+Exam Veda में **Progressive Web App (PWA)**, ऑटो-अपडेटिंग सर्विस वर्कर और मेनिफेस्ट के साथ-साथ अब **ऑटोमेटेड GitHub Actions Android APK Builder** भी शामिल है।
 
-### विकल्प A: 2 मिनट में बिना कोडिंग के Android APK बनाएं (PWABuilder - अनुशंसित)
+### विकल्प A: GitHub Actions द्वारा 1-क्लिक में Release APK डाउनलोड करें (सबसे आसान और तेज़)
+1. अपने GitHub रिपॉजिटरी में **Actions** टैब पर जाएं।
+2. बायीं ओर **"Build Exam Veda Android APK"** वर्कफ़्लो चुनें।
+3. **"Run workflow"** बटन पर क्लिक करें। (यदि आवश्यक हो तो अपनी वेबसाइट का डिप्लॉयड URL दर्ज कर सकते हैं, अन्यथा डिफ़ॉल्ट URL लोड होगा)।
+4. लगभग 2-3 मिनट में वर्कफ़्लो पूरा हो जाएगा।
+5. पूर्ण हुए रन पर क्लिक करें और सबसे नीचे **Artifacts** सेक्शन में **"ExamVeda-Release-APK"** पर क्लिक करके सीधे अपने मोबाइल में `.apk` फ़ाइल डाउनलोड व इंस्टॉल करें!
+
+### विकल्प B: 2 मिनट में बिना कोडिंग के Android APK बनाएं (PWABuilder)
 1. अपनी वेबसाइट Vercel या Render पर डिप्लॉय करें (जैसे `https://exam-veda.vercel.app`)।
 2. [PWABuilder.com](https://www.pwabuilder.com) पर जाएं।
 3. अपनी वेबसाइट का URL दर्ज करें और **Start** पर क्लिक करें।
@@ -79,19 +86,12 @@ Exam Veda में **Progressive Web App (PWA)**, ऑटो-अपडेटि�
 5. **"Package for Android"** पर क्लिक करें।
 6. आपको Google Play Store हेतु हस्ताक्षरित `.apk` और `.aab` फाइल तुरंत डाउनलोड मिल जाएगी!
 
-### विकल्प B: Capacitor CLI (नेटिव Android Studio प्रोजेक्ट)
-1. अपने प्रोजेक्ट में Capacitor जोड़ें:
-   ```bash
-   npm install @capacitor/core @capacitor/cli @capacitor/android
-   npx cap init "Exam Veda" "com.examveda.app" --web-dir dist
-   npm run build:client
-   npx cap add android
-   npx cap copy
-   npx cap open android
-   ```
-2. Android Studio में प्रोजेक्ट खुलेगा, जहाँ से आप सीधे **Build APK / Bundle** बना सकते हैं।
+### विकल्प C: स्थानीय मशीन (Android Studio) से APK बिल्ड करना
+1. `android/` डायरेक्टरी को सीधे Android Studio में खोलें।
+2. **Build -> Build Bundle(s) / APK(s) -> Build APK(s)** पर क्लिक करें।
+3. कुछ ही पलों में `android/app/build/outputs/apk/release/` में आपकी ऐप तैयार हो जाएगी।
 
-### विकल्प C: सीधे मोबाइल ब्राउज़र से इंस्टॉल करें (Install App / Add to Home Screen)
+### विकल्प D: सीधे मोबाइल ब्राउज़र से इंस्टॉल करें (Install App / Add to Home Screen)
 - मोबाइल में वेबसाइट खोलने पर Chrome/Edge में स्वतः **"Install Exam Veda"** या **"Add to Home screen"** का विकल्प आएगा।
 - यह बिना किसी ऐप स्टोर के ऐप की तरह फुलस्क्रीन में खुलेगा और ऑफलाइन भी चलेगा!
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Exam Veda</string>
+    <!-- Default URL to open in standalone app window -->
+    <string name="web_url">https://aaravmalik128.github.io/Exam-Veda-/</string>
+    <string name="error_offline_title">इंटरनेट कनेक्शन उपलब्ध नहीं है</string>
+    <string name="error_offline_message">Exam Veda लोड करने के लिए कृपया अपना इंटरनेट कनेक्शन जांचें और पुनः प्रयास करें।</string>
+    <string name="btn_retry">पुनः प्रयास करें</string>
+    <string name="exit_confirm_msg">ऐप से बाहर निकलने के लिए दोबारा बैक दबाएं</string>
+</resources>

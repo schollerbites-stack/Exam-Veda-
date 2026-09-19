@@ -1,0 +1,96 @@
+name: Build Exam Veda Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+      - 'src/**'
+      - 'public/**'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Exam Veda Deployed URL (optional, leave blank to use default)'
+        required: false
+        default: ''
+
+jobs:
+  build-apk:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant Execute Permissions to gradlew
+        run: chmod +x android/gradlew || true
+
+      - name: Ensure Release Keystore for APK Signing
+        run: |
+          cd android/app
+          if [ ! -f "release.keystore" ]; then
+            echo "Generating release keystore..."
+            keytool -genkey -v \
+              -keystore release.keystore \
+              -alias examveda \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass examveda \
+              -keypass examveda \
+              -dname "CN=Exam Veda, OU=App, O=Exam Veda, L=Delhi, S=Delhi, C=IN"
+          fi
+
+      - name: Configure Target Web URL (if provided)
+        if: ${{ github.event.inputs.target_url != '' }}
+        run: |
+          CUSTOM_URL="${{ github.event.inputs.target_url }}"
+          echo "Setting custom target web URL: $CUSTOM_URL"
+          sed -i "s|<string name=\"web_url\">.*</string>|<string name=\"web_url\">$CUSTOM_URL</string>|g" android/app/src/main/res/values/strings.xml
+
+      - name: Build Android Release APK with Gradle
+        run: |
+          cd android
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradle/wrapper/gradle-wrapper.jar || gradle wrapper
+          fi
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare APK Artifact
+        run: |
+          mkdir -p build-output
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          fi
+          echo "Selected APK path: $APK_PATH"
+          cp "$APK_PATH" build-output/ExamVeda-release.apk
+          ls -lh build-output/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExamVeda-Release-APK
+          path: build-output/ExamVeda-release.apk
+          retention-days: 30
