@@ -264,14 +264,14 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
 
   // Keys & models per provider
   const [geminiKey, setGeminiKey] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_GEMINI_KEY) || '';
+    return localStorage.getItem(STORAGE_KEY_GEMINI_KEY) || (import.meta.env.VITE_GEMINI_API_KEY as string) || '';
   });
   const [geminiModel, setGeminiModel] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY_GEMINI_MODEL) || 'gemini-3.8-flash';
   });
 
   const [groqKey, setGroqKey] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_GROQ_KEY) || '';
+    return localStorage.getItem(STORAGE_KEY_GROQ_KEY) || (import.meta.env.VITE_GROQ_API_KEY as string) || '';
   });
   const [groqModel, setGroqModel] = useState<string>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_GROQ_MODEL);
@@ -280,7 +280,7 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
   });
 
   const [openRouterKey, setOpenRouterKey] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_OPENROUTER_KEY) || '';
+    return localStorage.getItem(STORAGE_KEY_OPENROUTER_KEY) || (import.meta.env.VITE_OPENROUTER_API_KEY as string) || '';
   });
   const [openRouterModel, setOpenRouterModel] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY_OPENROUTER_MODEL) || 'deepseek/deepseek-chat';
@@ -303,7 +303,7 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
 
   // Server capability state
   const [hasServerGeminiKey, setHasServerGeminiKey] = useState(false);
-  const [hasServerGroqKey, setHasServerGroqKey] = useState(true);
+  const [hasServerGroqKey, setHasServerGroqKey] = useState(false);
 
   // Settings Modal State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -334,7 +334,10 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
 
     // Probe server API status
     fetch('/api/veda/status')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('No server backend');
+        return res.json();
+      })
       .then(data => {
         if (data && typeof data.hasServerGeminiKey === 'boolean') {
           setHasServerGeminiKey(data.hasServerGeminiKey);
@@ -344,7 +347,9 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
         }
       })
       .catch(() => {
-        // Dev server or direct mode
+        // Static hosting mode (GitHub Pages / APK WebView)
+        setHasServerGeminiKey(false);
+        setHasServerGroqKey(false);
       });
 
     return () => {
@@ -513,81 +518,114 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
 
       // 2. Google Gemini Agent
       if (currentAgent.provider === 'gemini') {
-        const response = await fetch('/api/chat/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            apiKey: geminiKey || undefined,
-            model: geminiModel,
-            prompt: query,
-            conversationHistory: messages.slice(-6).map(m => ({
-              role: m.sender === 'user' ? 'user' : 'assistant',
-              content: m.text,
-            })),
-          }),
-        });
+        const effectiveGeminiKey = (geminiKey && geminiKey.trim()) || (import.meta.env.VITE_GEMINI_API_KEY as string) || '';
+        let directSuccess = false;
 
-        if (!response.ok) {
-          // Fallback for static hosting (GitHub Pages / Vercel static) if server /api is 404
-          if (response.status === 404 && geminiKey) {
-            try {
-              const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`, {
+        try {
+          const response = await fetch('/api/chat/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: effectiveGeminiKey || undefined,
+              model: geminiModel,
+              prompt: query,
+              conversationHistory: messages.slice(-6).map(m => ({
+                role: m.sender === 'user' ? 'user' : 'assistant',
+                content: m.text,
+              })),
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `ai_${Date.now()}`,
+                sender: 'ai',
+                text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
+                timestamp: Date.now(),
+                agentName: 'Google Gemini',
+                modelUsed: geminiModel,
+              },
+            ]);
+            return;
+          }
+
+          // If response not ok and not 404, check error message
+          if (response.status !== 404) {
+            const errData = await response.json().catch(() => ({}));
+            if (errData?.error === 'GEMINI_KEY_MISSING') {
+              setMissingKeyNotice({ agentName: 'Google Gemini', provider: 'gemini' });
+              throw new Error(errData.message || 'Gemini API Key उपलब्ध नहीं है।');
+            }
+          }
+        } catch (serverErr) {
+          console.log('Server endpoint unavailable, attempting direct Gemini client...', serverErr);
+        }
+
+        // Direct Client Fallback (GitHub Pages / APK / Direct mode)
+        if (effectiveGeminiKey) {
+          try {
+            const directRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${effectiveGeminiKey}`,
+              {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ role: 'user', parts: [{ text: query }] }],
-                }),
-              });
-              if (directRes.ok) {
-                const directData = await directRes.json();
-                const reply = directData.candidates?.[0]?.content?.parts?.[0]?.text || 'उत्तर प्राप्त नहीं हुआ।';
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: reply,
-                    timestamp: Date.now(),
-                    agentName: 'Google Gemini',
-                    modelUsed: geminiModel,
+                  contents: [
+                    ...messages.slice(-6).map(m => ({
+                      role: m.sender === 'user' ? 'user' : 'model',
+                      parts: [{ text: m.text }],
+                    })),
+                    { role: 'user', parts: [{ text: query }] },
+                  ],
+                  systemInstruction: {
+                    parts: [
+                      {
+                        text: 'आप एक उत्कृष्ट हिंदी शिक्षक (Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
+                      },
+                    ],
                   },
-                ]);
-                return;
+                }),
               }
-            } catch {
-              // continue to error
-            }
-          }
+            );
 
-          const errData = await response.json().catch(() => ({}));
-          if (errData?.error === 'GEMINI_KEY_MISSING') {
-            setMissingKeyNotice({ agentName: 'Google Gemini', provider: 'gemini' });
-            throw new Error(errData.message || 'Gemini API Key उपलब्ध नहीं है।');
+            if (directRes.ok) {
+              const directData = await directRes.json();
+              const reply =
+                directData.candidates?.[0]?.content?.parts?.[0]?.text || 'उत्तर प्राप्त नहीं हुआ।';
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `ai_${Date.now()}`,
+                  sender: 'ai',
+                  text: reply,
+                  timestamp: Date.now(),
+                  agentName: 'Google Gemini',
+                  modelUsed: geminiModel,
+                },
+              ]);
+              directSuccess = true;
+              return;
+            }
+          } catch (directErr) {
+            console.warn('Direct Gemini call failed:', directErr);
           }
-          if (errData?.error === 'GEMINI_PERMISSION_DENIED' || response.status === 403) {
-            setMissingKeyNotice({ agentName: 'Google Gemini (व्यक्तिगत Key आवश्यक)', provider: 'gemini' });
-            throw new Error(errData?.message || 'Google Cloud प्रोजेक्ट में Gemini अनुमति सीमित है (403)। कृपया सेटिंग्स से अपनी व्यक्तिगत Gemini Key दर्ज करें या Groq AI चुनें।');
-          }
-          throw new Error(errData?.message || `Gemini सर्वर त्रुटि कोड: ${response.status}`);
         }
 
-        const data = await response.json();
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: 'ai',
-            text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
-            timestamp: Date.now(),
-            agentName: 'Google Gemini',
-            modelUsed: geminiModel,
-          },
-        ]);
+        if (!directSuccess) {
+          if (!effectiveGeminiKey && !hasServerGeminiKey) {
+            setMissingKeyNotice({ agentName: 'Google Gemini', provider: 'gemini' });
+          }
+          throw new Error('Gemini API से संपर्क नहीं हो सका। कृपया सेटिंग्स में API Key जांचें।');
+        }
         return;
       }
 
       // 3. Groq Agent
       if (currentAgent.provider === 'groq') {
+        const effectiveGroqKey = (groqKey && groqKey.trim()) || (import.meta.env.VITE_GROQ_API_KEY as string) || '';
         const groqMessages = [
           ...messages.slice(-6).map(m => ({
             role: m.sender === 'user' ? 'user' : 'assistant',
@@ -596,83 +634,108 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
           { role: 'user', content: query },
         ];
 
-        const response = await fetch('/api/chat/groq', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            apiKey: groqKey,
-            model: groqModel,
-            messages: groqMessages,
-          }),
-        });
+        let directSuccess = false;
 
-        if (!response.ok) {
-          // Direct client fallback for static hosting (GitHub Pages / Vercel static)
-          if (response.status === 404 && groqKey) {
-            try {
-              const directGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${groqKey}`,
-                },
-                body: JSON.stringify({
-                  model: groqModel,
-                  messages: [
-                    {
-                      role: 'system',
-                      content: 'आप एक उत्कृष्ट हिंदी शिक्षक (Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
-                    },
-                    ...groqMessages,
-                  ],
-                }),
-              });
-              if (directGroq.ok) {
-                const directData = await directGroq.json();
-                const reply = directData.choices?.[0]?.message?.content || 'उत्तर प्राप्त नहीं हुआ।';
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: reply,
-                    timestamp: Date.now(),
-                    agentName: 'Groq Cloud',
-                    modelUsed: groqModel,
-                  },
-                ]);
-                return;
-              }
-            } catch {
-              // continue to standard error
+        try {
+          const response = await fetch('/api/chat/groq', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: effectiveGroqKey || undefined,
+              model: groqModel,
+              messages: groqMessages,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `ai_${Date.now()}`,
+                sender: 'ai',
+                text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
+                timestamp: Date.now(),
+                agentName: 'Groq Cloud',
+                modelUsed: groqModel,
+              },
+            ]);
+            return;
+          }
+
+          if (response.status !== 404) {
+            const errData = await response.json().catch(() => ({}));
+            if (errData?.error === 'GROQ_KEY_MISSING') {
+              setMissingKeyNotice({ agentName: 'Groq Cloud', provider: 'groq' });
+              throw new Error(errData.message || 'Groq API Key अनुपलब्ध है।');
             }
           }
-
-          const errData = await response.json().catch(() => ({}));
-          if (errData?.error === 'GROQ_KEY_MISSING') {
-            setMissingKeyNotice({ agentName: 'Groq Cloud', provider: 'groq' });
-            throw new Error(errData.message || 'Groq API Key अनुपलब्ध है।');
-          }
-          throw new Error(errData?.message || `Groq API सर्वर त्रुटि: ${response.status}`);
+        } catch (serverErr) {
+          console.log('Server endpoint unavailable, attempting direct Groq client...', serverErr);
         }
 
-        const data = await response.json();
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: 'ai',
-            text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
-            timestamp: Date.now(),
-            agentName: 'Groq Cloud',
-            modelUsed: groqModel,
-          },
-        ]);
+        // Direct Client Fallback to Groq Cloud (GitHub Pages / APK / Direct mode)
+        if (effectiveGroqKey) {
+          try {
+            const directGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${effectiveGroqKey}`,
+              },
+              body: JSON.stringify({
+                model: groqModel,
+                messages: [
+                  {
+                    role: 'system',
+                    content:
+                      'आप एक उत्कृष्ट हिंदी शिक्षक (Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
+                  },
+                  ...groqMessages,
+                ],
+                temperature: 0.6,
+                max_tokens: 1800,
+              }),
+            });
+
+            if (directGroq.ok) {
+              const directData = await directGroq.json();
+              const reply =
+                directData.choices?.[0]?.message?.content || 'उत्तर प्राप्त नहीं हुआ।';
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `ai_${Date.now()}`,
+                  sender: 'ai',
+                  text: reply,
+                  timestamp: Date.now(),
+                  agentName: 'Groq Cloud',
+                  modelUsed: groqModel,
+                },
+              ]);
+              directSuccess = true;
+              return;
+            } else {
+              const errData = await directGroq.json().catch(() => ({}));
+              console.warn('Direct Groq API returned non-200:', errData);
+            }
+          } catch (directErr) {
+            console.warn('Direct Groq call failed:', directErr);
+          }
+        }
+
+        if (!directSuccess) {
+          if (!effectiveGroqKey && !hasServerGroqKey) {
+            setMissingKeyNotice({ agentName: 'Groq Cloud', provider: 'groq' });
+          }
+          throw new Error('Groq AI से संपर्क नहीं हो सका। कृपया सेटिंग्स में API Key जांचें।');
+        }
         return;
       }
 
       // 4. OpenRouter Agent
       if (currentAgent.provider === 'openrouter') {
+        const effectiveOpenRouterKey = (openRouterKey && openRouterKey.trim()) || (import.meta.env.VITE_OPENROUTER_API_KEY as string) || '';
         const orMessages = [
           ...messages.slice(-6).map(m => ({
             role: m.sender === 'user' ? 'user' : 'assistant',
@@ -681,37 +744,91 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
           { role: 'user', content: query },
         ];
 
-        const response = await fetch('/api/chat/openrouter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            apiKey: openRouterKey,
-            model: openRouterModel,
-            messages: orMessages,
-          }),
-        });
+        let directSuccess = false;
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          if (errData?.error === 'OPENROUTER_KEY_MISSING') {
-            setMissingKeyNotice({ agentName: 'OpenRouter', provider: 'openrouter' });
-            throw new Error(errData.message || 'OpenRouter API Key अनुपलब्ध है।');
+        try {
+          const response = await fetch('/api/chat/openrouter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: effectiveOpenRouterKey || undefined,
+              model: openRouterModel,
+              messages: orMessages,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `ai_${Date.now()}`,
+                sender: 'ai',
+                text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
+                timestamp: Date.now(),
+                agentName: 'OpenRouter',
+                modelUsed: openRouterModel,
+              },
+            ]);
+            return;
           }
-          throw new Error(errData?.message || `OpenRouter API सर्वर त्रुटि: ${response.status}`);
+        } catch (serverErr) {
+          console.log('Server endpoint unavailable, attempting direct OpenRouter client...', serverErr);
         }
 
-        const data = await response.json();
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: 'ai',
-            text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
-            timestamp: Date.now(),
-            agentName: 'OpenRouter',
-            modelUsed: openRouterModel,
-          },
-        ]);
+        // Direct Client Fallback to OpenRouter
+        if (effectiveOpenRouterKey) {
+          try {
+            const directOR = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${effectiveOpenRouterKey}`,
+                'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://examveda.app',
+                'X-Title': 'Exam Veda',
+              },
+              body: JSON.stringify({
+                model: openRouterModel,
+                messages: [
+                  {
+                    role: 'system',
+                    content:
+                      'आप एक उत्कृष्ट हिंदी शिक्षक (Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
+                  },
+                  ...orMessages,
+                ],
+              }),
+            });
+
+            if (directOR.ok) {
+              const directData = await directOR.json();
+              const reply =
+                directData.choices?.[0]?.message?.content || 'उत्तर प्राप्त नहीं हुआ।';
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `ai_${Date.now()}`,
+                  sender: 'ai',
+                  text: reply,
+                  timestamp: Date.now(),
+                  agentName: 'OpenRouter',
+                  modelUsed: openRouterModel,
+                },
+              ]);
+              directSuccess = true;
+              return;
+            }
+          } catch (directErr) {
+            console.warn('Direct OpenRouter call failed:', directErr);
+          }
+        }
+
+        if (!directSuccess) {
+          if (!effectiveOpenRouterKey) {
+            setMissingKeyNotice({ agentName: 'OpenRouter', provider: 'openrouter' });
+          }
+          throw new Error('OpenRouter API से संपर्क नहीं हो सका। कृपया सेटिंग्स में API Key जांचें।');
+        }
         return;
       }
 
@@ -728,34 +845,89 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
           { role: 'user', content: query },
         ];
 
-        const response = await fetch('/api/chat/custom', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            baseUrl: ca.baseUrl,
-            apiKey: ca.apiKey,
-            model: ca.model,
-            messages: customMessages,
-          }),
-        });
+        let directSuccess = false;
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData?.message || `कस्टम एजेंट सर्वर त्रुटि: ${response.status}`);
+        try {
+          const response = await fetch('/api/chat/custom', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              baseUrl: ca.baseUrl,
+              apiKey: ca.apiKey,
+              model: ca.model,
+              messages: customMessages,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `ai_${Date.now()}`,
+                sender: 'ai',
+                text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
+                timestamp: Date.now(),
+                agentName: ca.name,
+                modelUsed: ca.model,
+              },
+            ]);
+            return;
+          }
+        } catch (serverErr) {
+          console.log('Server endpoint unavailable, attempting direct Custom Agent client...', serverErr);
         }
 
-        const data = await response.json();
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: 'ai',
-            text: data.reply || 'उत्तर प्राप्त नहीं हुआ।',
-            timestamp: Date.now(),
-            agentName: ca.name,
-            modelUsed: ca.model,
-          },
-        ]);
+        // Direct Client Fallback to Custom endpoint
+        if (ca.baseUrl) {
+          try {
+            const cleanUrl = ca.baseUrl.replace(/\/+$/, '');
+            const targetUrl = cleanUrl.endsWith('/chat/completions')
+              ? cleanUrl
+              : `${cleanUrl}/chat/completions`;
+
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+            };
+            if (ca.apiKey) {
+              headers['Authorization'] = `Bearer ${ca.apiKey}`;
+            }
+
+            const directCustom = await fetch(targetUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                model: ca.model || 'default',
+                messages: customMessages,
+              }),
+            });
+
+            if (directCustom.ok) {
+              const data = await directCustom.json();
+              const reply =
+                data.choices?.[0]?.message?.content || data.reply || 'उत्तर प्राप्त नहीं हुआ।';
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `ai_${Date.now()}`,
+                  sender: 'ai',
+                  text: reply,
+                  timestamp: Date.now(),
+                  agentName: ca.name,
+                  modelUsed: ca.model,
+                },
+              ]);
+              directSuccess = true;
+              return;
+            }
+          } catch (directErr) {
+            console.warn('Direct custom agent call failed:', directErr);
+          }
+        }
+
+        if (!directSuccess) {
+          throw new Error('कस्टम AI एजेंट से उत्तर प्राप्त नहीं हो सका। कृपया URL व Key जांचें।');
+        }
         return;
       }
     } catch (err: unknown) {

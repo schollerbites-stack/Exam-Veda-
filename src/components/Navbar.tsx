@@ -55,12 +55,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2 text-left group focus:outline-hidden cursor-pointer"
             title="होम डैशबोर्ड पर जाएं"
           >
-            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs group-hover:scale-105 transition-transform flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs group-hover:scale-105 transition-transform flex-shrink-0 bg-indigo-600">
               <img
-                src="/icon.svg"
+                src={`${import.meta.env.BASE_URL}icon.svg`}
                 alt="Exam Veda Logo"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // Fallback if SVG fails to load
+                  const img = e.currentTarget;
+                  if (!img.src.includes('pwa-192x192.png')) {
+                    img.src = `${import.meta.env.BASE_URL}pwa-192x192.png`;
+                  }
+                }}
               />
             </div>
             <div>

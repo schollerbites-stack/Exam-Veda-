@@ -40,6 +40,10 @@ jobs:
 
       - name: Build client for GitHub Pages
         run: npm run build:client
+        env:
+          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY || secrets.GROQ_API_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY || secrets.OPENROUTER_API_KEY }}
 
       - name: Prevent GitHub Pages Jekyll processing
         run: touch dist/.nojekyll
