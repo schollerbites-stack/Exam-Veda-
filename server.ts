@@ -355,13 +355,8 @@ async function startServer() {
 
   // Vite middleware for development vs Static serving in production
   if (process.env.NODE_ENV !== 'production') {
-    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        hmr: isHmrDisabled ? false : undefined,
-        watch: isHmrDisabled ? null : undefined,
-      },
+      server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);

@@ -19,6 +19,7 @@ const STORAGE_KEY_CATEGORIES = 'study_handler_categories_v1';
 const STORAGE_KEY_LESSONS = 'study_handler_lessons_v1';
 const STORAGE_KEY_SOUND = 'study_handler_sound_v1';
 const STORAGE_KEY_HISTORY = 'study_handler_quiz_history_v1';
+const STORAGE_KEY_SAVED_NOTES = 'study_handler_saved_notes_v1';
 
 export default function App() {
   // Categories State
@@ -83,6 +84,20 @@ export default function App() {
     return [];
   });
 
+  // Offline Saved / Downloaded Notes state
+  const [savedOfflineNoteIds, setSavedOfflineNoteIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SAVED_NOTES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load saved notes from localStorage:', e);
+    }
+    return [];
+  });
+
   // Active View navigation
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'categories' });
 
@@ -118,6 +133,20 @@ export default function App() {
       console.error('Failed to save history:', e);
     }
   }, [history]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SAVED_NOTES, JSON.stringify(savedOfflineNoteIds));
+    } catch (e) {
+      console.error('Failed to save offline notes list:', e);
+    }
+  }, [savedOfflineNoteIds]);
+
+  const handleToggleSaveOfflineNote = (lessonId: string) => {
+    setSavedOfflineNoteIds(prev =>
+      prev.includes(lessonId) ? prev.filter(id => id !== lessonId) : [...prev, lessonId]
+    );
+  };
 
   // Open Admin helper (navigates to full-screen mobile Admin page)
   const handleOpenAdmin = (
@@ -197,7 +226,10 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-20">
       {/* Offline Status Alert */}
-      <OfflineIndicator />
+      <OfflineIndicator
+        onNavigateToNotes={() => setActiveView({ type: 'notes_hub' })}
+        onNavigateToHistory={() => setActiveView({ type: 'history' })}
+      />
 
       {/* Top Navbar (hidden on full-screen views like Admin, AI Tutor, Quiz, and NoteViewer) */}
       {!isFullscreenView && (
@@ -396,6 +428,7 @@ export default function App() {
             categories={categories}
             lessons={lessons}
             selectedCategoryId={activeView.categoryId}
+            savedOfflineNoteIds={savedOfflineNoteIds}
             onReadNote={(lessonId: string) => {
               setActiveView({
                 type: 'note_viewer',
@@ -436,6 +469,8 @@ export default function App() {
               lesson={currentLesson}
               category={currentCat}
               allCategoryLessons={categoryLessons}
+              isSavedOffline={savedOfflineNoteIds.includes(currentLesson.id)}
+              onToggleSaveOffline={handleToggleSaveOfflineNote}
               onBack={() => {
                 if (activeView.returnView) {
                   setActiveView(activeView.returnView);

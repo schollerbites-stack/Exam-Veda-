@@ -122,15 +122,51 @@ export const PWAInstallButton: React.FC<{ variant?: 'compact' | 'full' }> = ({ v
   );
 };
 
-export const OfflineIndicator: React.FC = () => {
+export const OfflineIndicator: React.FC<{
+  onNavigateToNotes?: () => void;
+  onNavigateToHistory?: () => void;
+}> = ({ onNavigateToNotes, onNavigateToHistory }) => {
   const isOnline = useOnlineStatus();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (isOnline) return null;
+  if (isOnline || dismissed) return null;
 
   return (
-    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg animate-pulse">
-      <WifiOff className="w-3.5 h-3.5" />
-      <span>ऑफलाइन मोड सक्रिय — सहेजे गए क्विज़ व लेसन्स पूरी तरह उपलब्ध हैं!</span>
+    <div className="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl flex items-center justify-between gap-2 rounded-2xl bg-amber-600/95 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white shadow-xl border border-amber-400/40">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="p-1 rounded-lg bg-amber-700/80 shrink-0">
+          <WifiOff className="w-3.5 h-3.5 text-amber-100 animate-pulse" />
+        </span>
+        <span className="truncate text-2xs sm:text-xs">
+          <strong>ऑफलाइन मोड:</strong> कैश्ड नोट्स व टेस्ट हिस्ट्री सुरक्षित व उपलब्ध हैं!
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        {onNavigateToNotes && (
+          <button
+            onClick={onNavigateToNotes}
+            className="px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition-colors cursor-pointer"
+          >
+            नोट्स
+          </button>
+        )}
+        {onNavigateToHistory && (
+          <button
+            onClick={onNavigateToHistory}
+            className="px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition-colors cursor-pointer"
+          >
+            हिस्ट्री
+          </button>
+        )}
+        <button
+          onClick={() => setDismissed(true)}
+          className="p-1 rounded-lg hover:bg-white/20 text-white/80 transition-colors cursor-pointer"
+          title="बंद करें"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };

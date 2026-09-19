@@ -13,13 +13,20 @@ import {
   Layers,
   ChevronRight,
   ChevronLeft,
-  Share2
+  Share2,
+  Download,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  WifiOff
 } from 'lucide-react';
 
 interface NoteViewerProps {
   lesson: Lesson;
   category?: Category;
   allCategoryLessons?: Lesson[];
+  isSavedOffline?: boolean;
+  onToggleSaveOffline?: (lessonId: string) => void;
   onBack: () => void;
   onStartQuiz: (lessonId: string) => void;
   onSelectLesson?: (lessonId: string) => void;
@@ -30,6 +37,8 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
   lesson,
   category,
   allCategoryLessons = [],
+  isSavedOffline = false,
+  onToggleSaveOffline,
   onBack,
   onStartQuiz,
   onSelectLesson,
@@ -37,6 +46,7 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
 }) => {
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('base');
   const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
   const handleCopyNotes = () => {
     const textToCopy = `${lesson.title}\n\n${lesson.notes || lesson.description || ''}`;
@@ -44,6 +54,36 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const handleDownloadNotes = () => {
+    const noteBody = lesson.notes || lesson.description || 'नोट्स विवरण उपलब्ध नहीं है।';
+    const textContent = `Exam Veda - अध्याय नोट्स\n` +
+      `विषय: ${category?.name || 'सामान्य अध्ययन'}\n` +
+      `अध्याय: ${lesson.title}\n` +
+      `तारीख: ${new Date().toLocaleDateString('hi-IN')}\n\n` +
+      `==================================================\n` +
+      `${noteBody}\n` +
+      `==================================================\n` +
+      `Exam Veda | ऑफलाइन अध्ययन साथी | www.examveda.app\n`;
+
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${lesson.title.replace(/[/\\?%*:|"<>]/g, '_')}_ExamVeda_Notes.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2500);
+
+    // Auto-mark as offline saved as well
+    if (onToggleSaveOffline && !isSavedOffline) {
+      onToggleSaveOffline(lesson.id);
+    }
   };
 
   // Find next and previous lessons in the same category
@@ -291,7 +331,7 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
               {lesson.iconEmoji || '📖'}
             </span>
             <div>
-              <div className="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 mb-1">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 mb-1 flex-wrap">
                 {category && (
                   <span className="bg-indigo-900/60 px-2 py-0.5 rounded-md border border-indigo-400/30">
                     {category.name}
@@ -299,6 +339,11 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
                 )}
                 <span>•</span>
                 <span className="text-slate-300">स्टडी नोट्स व थ्योरी</span>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1 text-emerald-300 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  ऑफलाइन रेडी
+                </span>
               </div>
               <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white">
                 {lesson.title}
@@ -309,6 +354,17 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="sm:self-center flex items-center gap-2">
+            <button
+              onClick={handleDownloadNotes}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 backdrop-blur-xs transition cursor-pointer"
+              title="नोट्स फाइल (.txt) डिवाइस पर डाउनलोड करें"
+            >
+              {downloaded ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{downloaded ? 'डाउनलोड हो गया' : 'ऑफलाइन डाउनलोड'}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -344,8 +400,38 @@ export const NoteViewer: React.FC<NoteViewerProps> = ({
           </button>
         </div>
 
-        {/* Right: Copy & Veda AI Tutor */}
-        <div className="flex items-center gap-1.5">
+        {/* Right: Copy, Download, Bookmark & Veda AI Tutor */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Download Button */}
+          <button
+            onClick={handleDownloadNotes}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+            title="नोट्स को टेक्स्ट फाइल में डाउनलोड करें"
+          >
+            {downloaded ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Download className="w-3.5 h-3.5 text-slate-600" />}
+            <span>{downloaded ? 'डाउनलोड हुआ' : 'डाउनलोड'}</span>
+          </button>
+
+          {/* Bookmark / Offline Save toggle */}
+          {onToggleSaveOffline && (
+            <button
+              onClick={() => onToggleSaveOffline(lesson.id)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                isSavedOffline
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+              }`}
+              title={isSavedOffline ? 'सहेजे गए से हटाएं' : 'ऑफलाइन पढ़ने हेतु सहेजें'}
+            >
+              {isSavedOffline ? (
+                <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
+              ) : (
+                <Bookmark className="w-3.5 h-3.5 text-slate-600" />
+              )}
+              <span>{isSavedOffline ? 'सहेजा हुआ' : 'सहेजें'}</span>
+            </button>
+          )}
+
           {/* Copy Button */}
           <button
             onClick={handleCopyNotes}

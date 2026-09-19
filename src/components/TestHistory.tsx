@@ -14,7 +14,9 @@ import {
   BarChart3,
   TrendingUp,
   Award,
-  BookOpen
+  BookOpen,
+  Download,
+  WifiOff
 } from 'lucide-react';
 
 interface TestHistoryProps {
@@ -93,35 +95,78 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
     };
   });
 
+  const handleDownloadReport = () => {
+    if (history.length === 0) return;
+    let report = `Exam Veda - विद्यार्थी टेस्ट रिकॉर्ड व प्रोग्रेस कार्ड\n`;
+    report += `दिनांक: ${new Date().toLocaleDateString('hi-IN')}\n`;
+    report += `कुल टेस्ट: ${totalTests} | कुल प्रश्न: ${totalQuestions} | औसत सटीकता: ${avgAccuracy}%\n`;
+    report += `सही उत्तर: ${totalCorrect} | गलत उत्तर: ${totalWrong}\n`;
+    report += `========================================================\n\n`;
+
+    history.forEach((h, idx) => {
+      report += `${idx + 1}. [${h.categoryName}] ${h.lessonTitle}\n`;
+      report += `   तारीख: ${formatDate(h.completedAt)}\n`;
+      report += `   स्कोर: ${h.correctCount}/${h.totalQuestions} (${Math.round((h.correctCount / (h.totalQuestions || 1)) * 100)}%)\n`;
+      report += `   समय: ${formatTime(h.timeSpentSeconds || 0)}\n\n`;
+    });
+
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ExamVeda_Test_History_Report.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4 pb-20">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
               विद्यार्थी टेस्ट रिकॉर्ड व प्रोग्रेस हिस्ट्री
             </h1>
             <span className="text-base">📊</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              100% ऑफ़लाइन सुरक्षित
+            </span>
           </div>
           <p className="text-xs text-slate-600 mt-0.5">
-            आपके दिए गए सभी मॉक टेस्ट के परिणाम, गलत व सही उत्तरों का विवरण और प्रदर्शन ट्रैक।
+            आपके दिए गए सभी मॉक टेस्ट के परिणाम, गलत व सही उत्तरों का विवरण और ऑफलाइन समीक्षा।
           </p>
         </div>
 
-        {history.length > 0 && (
-          <button
-            onClick={() => {
-              if (confirm('क्या आप वाकई संपूर्ण टेस्ट हिस्ट्री को साफ करना चाहते हैं?')) {
-                onClearHistory();
-              }
-            }}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg border border-rose-200 transition-colors self-start sm:self-auto cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            हिस्ट्री साफ करें
-          </button>
-        )}
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {history.length > 0 && (
+            <>
+              <button
+                onClick={handleDownloadReport}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg border border-indigo-200 transition-colors cursor-pointer"
+                title="संपूर्ण टेस्ट रिपोर्ट टेक्स्ट फाइल में डाउनलोड करें"
+              >
+                <Download className="w-3.5 h-3.5" />
+                रिपोर्ट डाउनलोड
+              </button>
+
+              <button
+                onClick={() => {
+                  if (confirm('क्या आप वाकई संपूर्ण टेस्ट हिस्ट्री को साफ करना चाहते हैं?')) {
+                    onClearHistory();
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg border border-rose-200 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                हिस्ट्री साफ करें
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 4 Cumulative Metrics */}

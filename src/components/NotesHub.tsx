@@ -10,13 +10,18 @@ import {
   Clock,
   Filter,
   CheckCircle2,
-  Plus
+  Plus,
+  Bookmark,
+  BookmarkCheck,
+  Download,
+  WifiOff
 } from 'lucide-react';
 
 interface NotesHubProps {
   categories: Category[];
   lessons: Lesson[];
   selectedCategoryId?: string;
+  savedOfflineNoteIds?: string[];
   onReadNote: (lessonId: string) => void;
   onStartQuiz: (lessonId: string) => void;
   onOpenAdmin: (initialTab?: 'upload' | 'categories' | 'lessons', defaultCategoryId?: string) => void;
@@ -27,6 +32,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
   categories,
   lessons,
   selectedCategoryId,
+  savedOfflineNoteIds = [],
   onReadNote,
   onStartQuiz,
   onOpenAdmin,
@@ -37,10 +43,15 @@ export const NotesHub: React.FC<NotesHubProps> = ({
   );
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter lessons by selected category and search term
+  // Filter lessons by selected category (or 'saved') and search term
   const filteredLessons = lessons.filter(lesson => {
-    const matchesCategory =
-      activeCategoryId === 'all' || lesson.categoryId === activeCategoryId;
+    let matchesCategory = true;
+    if (activeCategoryId === 'saved') {
+      matchesCategory = savedOfflineNoteIds.includes(lesson.id);
+    } else if (activeCategoryId !== 'all') {
+      matchesCategory = lesson.categoryId === activeCategoryId;
+    }
+
     const matchesSearch =
       lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lesson.description && lesson.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -119,6 +130,27 @@ export const NotesHub: React.FC<NotesHubProps> = ({
             सभी विषय ({lessons.length})
           </button>
 
+          {/* Saved / Downloaded Offline Notes Tab */}
+          <button
+            onClick={() => setActiveCategoryId('saved')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 border ${
+              activeCategoryId === 'saved'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+            }`}
+            title="ऑफलाइन अध्ययन के लिए सहेजे और डाउनलोड किए गए नोट्स"
+          >
+            <BookmarkCheck className={`w-3.5 h-3.5 ${activeCategoryId === 'saved' ? 'text-white' : 'text-amber-600'}`} />
+            <span>सहेजे गए / डाउनलोड नोट्स</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                activeCategoryId === 'saved' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {savedOfflineNoteIds.length}
+            </span>
+          </button>
+
           {categories.map(category => {
             const count = lessons.filter(l => l.categoryId === category.id).length;
             const isSelected = activeCategoryId === category.id;
@@ -176,9 +208,17 @@ export const NotesHub: React.FC<NotesHubProps> = ({
                 <div>
                   {/* Category & Read Time Tags */}
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-150 truncate">
-                      {category?.name || 'सामान्य अध्ययन'}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-150 truncate">
+                        {category?.name || 'सामान्य अध्ययन'}
+                      </span>
+                      {savedOfflineNoteIds.includes(lesson.id) && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                          <BookmarkCheck className="w-3 h-3 text-amber-600" />
+                          <span>ऑफलाइन सेव</span>
+                        </span>
+                      )}
+                    </div>
                     <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 shrink-0">
                       <Clock className="w-3 h-3 text-slate-400" />
                       {readTime} पठन
@@ -255,6 +295,20 @@ export const NotesHub: React.FC<NotesHubProps> = ({
               </div>
             );
           })}
+        </div>
+      ) : activeCategoryId === 'saved' ? (
+        <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40">
+          <div className="text-4xl mb-3">📑</div>
+          <h3 className="text-base font-bold text-slate-800">कोई सहेजा गया नोट्स नहीं मिला</h3>
+          <p className="text-xs text-slate-650 mt-1 max-w-sm mx-auto leading-relaxed">
+            आपने अभी तक किसी नोट्स को ऑफलाइन अध्ययन हेतु सहेजा नहीं है। किसी भी पाठ के नोट्स खोलकर "ऑफलाइन डाउनलोड" या "सहेजें" बटन दबाएं ताकि इंटरनेट न होने पर भी आप तुरंत पढ़ सकें।
+          </p>
+          <button
+            onClick={() => setActiveCategoryId('all')}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors cursor-pointer"
+          >
+            सभी विषय देखें
+          </button>
         </div>
       ) : (
         <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
