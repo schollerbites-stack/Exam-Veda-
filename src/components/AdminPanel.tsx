@@ -37,21 +37,21 @@ interface AdminPanelProps {
   onStartQuiz?: (lessonId: string) => void;
 }
 
-const SAMPLE_RAW_TEXT = `1. हड़प्पा सभ्यता की खोज किस वर्ष में हुई थी?
-A. 1905
-B. 1921
-C. 1935
-D. 1947
+const SAMPLE_RAW_TEXT = `1. भारतीय संविधान में मौलिक अधिकार किस देश से लिए गए हैं?
+A. ब्रिटेन
+B. संयुक्त राज्य अमेरिका (USA)
+C. आयरलैंड
+D. रूस
 Ans. B
-Exp: रायबहादुर दयाराम साहनी ने 1921 में हड़प्पा की खोज की थी।
+Exp: मौलिक अधिकार (Fundamental Rights) अमेरिकी संविधान के बिल ऑफ राइट्स से प्रेरित हैं।
 
-2. सिंधु सभ्यता का प्रमुख पत्तन नगर (बंदरगाह) कौन-सा था?
-A. कालीबंगन
-B. लोथल
-C. रोपड़
-D. मोहनजोदड़ो
+2. संविधान के किस भाग को 'भारत का मैग्नाकार्टा' कहा जाता है?
+A. भाग II
+B. भाग III
+C. भाग IV
+D. भाग IV-A
 Ans. B
-Exp: लोथल गुजरात के भोगवा नदी तट पर स्थित हड़प्पा कालीन प्रमुख बंदरगाह था।`;
+Exp: भाग III (अनुच्छेद 12 से 35) में मौलिक अधिकारों का उल्लेख है, जिसे मैग्नाकार्टा कहा जाता है।`;
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   categories,
@@ -117,7 +117,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       return;
     }
     if (!lessonTitle.trim()) {
-      alert('कृपया लेसन का शीर्षक (Title) दर्ज करें।');
+      alert('कृपया पाठ का शीर्षक दर्ज करें।');
       return;
     }
     if (parseResult.questions.length === 0) {
@@ -130,7 +130,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       categoryId: selectedCategoryId,
       title: lessonTitle.trim(),
       description: lessonDesc.trim() || undefined,
-      iconEmoji: lessonEmoji,
+      iconEmoji: lessonEmoji || '📖',
       notes: lessonNotes.trim() || undefined,
       questions: parseResult.questions,
       rawText: rawMCQText,
@@ -215,19 +215,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handlePasteSample = () => {
     setRawMCQText(SAMPLE_RAW_TEXT);
-    if (!lessonTitle) {
-      setLessonTitle('सिंधु घाटी सभ्यता - अभ्यास टेस्ट');
-    }
+    setLessonTitle('मौलिक अधिकार (Fundamental Rights)');
+    setLessonDesc('भाग 3: अनुच्छेद 12 से 35 की संपूर्ण व्याख्या');
+    setLessonEmoji('⚖️');
   };
 
-  const filteredLessons = lessons.filter(l =>
-    l.title.toLowerCase().includes(lessonSearch.toLowerCase()) ||
-    (l.description && l.description.toLowerCase().includes(lessonSearch.toLowerCase()))
-  );
+  // Filter lessons
+  const filteredLessons = lessons.filter(l => {
+    return (
+      l.title.toLowerCase().includes(lessonSearch.toLowerCase()) ||
+      (l.description && l.description.toLowerCase().includes(lessonSearch.toLowerCase()))
+    );
+  });
 
   return (
     <div className="min-h-screen bg-slate-100/70 pb-32 text-slate-900">
-      {/* Top Mobile-First Header */}
+      {/* Top Header */}
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs px-3 sm:px-5 py-2">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
           {/* Back to Home */}
@@ -245,25 +248,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               एडमिन डेटा पोर्टल
             </h1>
             <p className="text-[11px] text-slate-600 hidden sm:block leading-none mt-0.5">
-              MCQ प्रश्न, श्रेणियां व पाठ्य सामग्री प्रबंधन
+              विषय, पाठ, अध्ययन नोट्स व प्रश्न प्रबंधन
             </p>
           </div>
 
-          {/* Data Management Action */}
+          {/* Reset Action */}
           <button
             onClick={() => setShowResetConfirm(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
             title="डेटा साफ़ करें या डिफ़ॉल्ट रीसेट करें"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
-            <span>डेटा प्रबंधन</span>
+            <span>डेटा रीसेट</span>
           </button>
         </div>
       </div>
 
-      {/* Main Container - Arranged to fit 100% on mobile screens */}
+      {/* Main Container */}
       <div className="max-w-4xl mx-auto px-3 sm:px-5 py-3 space-y-3">
-        {/* Mobile Navigation Tabs */}
+        {/* Navigation Tabs */}
         <div className="bg-white p-0.5 rounded-xl border border-slate-200 shadow-xs grid grid-cols-3 gap-0.5 text-xs font-bold">
           <button
             onClick={() => setActiveTab('upload')}
@@ -275,7 +278,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           >
             <Upload className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">
-              {editingLessonId ? 'एडिट लेसन' : 'MCQ अपलोड'}
+              {editingLessonId ? 'एडिट पाठ' : '+ नया पाठ जोड़ें'}
             </span>
           </button>
 
@@ -288,7 +291,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }`}
           >
             <FolderKanban className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">लेसन ({lessons.length})</span>
+            <span className="truncate">सभी पाठ ({lessons.length})</span>
           </button>
 
           <button
@@ -304,15 +307,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
         </div>
 
-        {/* TAB 1: MCQ RAW UPLOAD FORM */}
+        {/* TAB 1: LESSON FORM */}
         {activeTab === 'upload' && (
           <form onSubmit={handleSaveLesson} className="space-y-4">
-            {/* Header notification if editing */}
             {editingLessonId && (
               <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3 flex items-center justify-between text-xs text-amber-900 font-medium">
                 <span className="flex items-center gap-1.5">
                   <Edit3 className="w-4 h-4 text-amber-700 shrink-0" />
-                  मौजूदा लेसन संपादित किया जा रहा है: <strong>{lessonTitle}</strong>
+                  मौजूदा पाठ संपादित किया जा रहा है: <strong>{lessonTitle}</strong>
                 </span>
                 <button
                   type="button"
@@ -323,32 +325,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     setLessonNotes('');
                     setRawMCQText('');
                   }}
-                  className="px-2 py-1 bg-white rounded-lg border border-amber-300 text-amber-800 font-bold hover:bg-amber-100"
+                  className="px-2 py-1 bg-white rounded-lg border border-amber-300 text-amber-800 font-bold hover:bg-amber-100 cursor-pointer"
                 >
                   रद्द करें
                 </button>
               </div>
             )}
 
-            {/* Step 1: Category & Basic Info */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3.5">
+            {/* Step 1: Basic Info */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
                   1
                 </span>
-                लेसन की मूल जानकारी (Basic Info)
+                विषय व पाठ विवरण (Subject & Lesson Details)
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* Select Category */}
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    श्रेणी चुनें (Target Category) *
+                    1. विषय / श्रेणी चुनें (Subject) *
                   </label>
                   <select
                     value={selectedCategoryId}
                     onChange={e => setSelectedCategoryId(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-900"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-900 cursor-pointer"
                     required
                   >
                     {categories.map(c => (
@@ -362,11 +364,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 {/* Lesson Title */}
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    लेसन / अध्याय का नाम (Title) *
+                    2. पाठ का नाम (Lesson Title) *
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. सिंधु घाटी सभ्यता - टेस्ट 1"
+                    placeholder="उदा. सिंधु घाटी सभ्यता या मौलिक अधिकार"
                     value={lessonTitle}
                     onChange={e => setLessonTitle(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-900"
@@ -375,91 +377,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-3.5">
-                {/* Lesson Emoji with custom keyboard support */}
+              {/* Emoji & Description */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <label className="block text-xs font-bold text-slate-800">
-                      आइकॉन इमोजी (Emoji - कीबोर्ड से कोई भी इमोजी टाइप/पेस्ट करें)
-                    </label>
-                    <span className="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">
-                      चयनित: {lessonEmoji || '📖'}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-                    {/* Direct Keyboard Input */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <input
-                        type="text"
-                        value={lessonEmoji}
-                        onChange={e => setLessonEmoji(e.target.value)}
-                        placeholder="📖"
-                        className="w-16 h-11 text-center text-2xl bg-white border-2 border-indigo-400 focus:border-indigo-600 rounded-xl font-bold shadow-xs focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900"
-                        title="यहाँ कीबोर्ड से कोई भी कस्टम इमोजी टाइप या पेस्ट करें"
-                      />
-                      <span className="text-xs text-slate-500 font-medium">
-                        ← कीबोर्ड से टाइप करें
-                      </span>
-                    </div>
-
-                    {/* Quick Select Buttons */}
-                    <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto py-1">
-                      {['📖', '📜', '🌍', '⚖️', '🔬', '💡', '🎯', '🏛️', '💻', '🇮🇳', '⚡', '🧬', '📐', '💰', '🏹', '🌿', '🧠', '📊', '👑', '📝', '🧪', '🗺️'].map(emoji => (
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    इमोजी आइकॉन
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={lessonEmoji}
+                      onChange={e => setLessonEmoji(e.target.value)}
+                      placeholder="📖"
+                      className="w-14 h-10 text-center text-xl bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    />
+                    <div className="flex items-center gap-1 overflow-x-auto py-1">
+                      {['⚖️', '📖', '📜', '🌍', '🔬', '💡', '🎯', '🏛️'].map(em => (
                         <button
                           type="button"
-                          key={emoji}
-                          onClick={() => setLessonEmoji(emoji)}
-                          className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center border transition-all cursor-pointer ${
-                            lessonEmoji === emoji
-                              ? 'bg-indigo-100 border-indigo-600 scale-110 shadow-xs'
-                              : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                          }`}
+                          key={em}
+                          onClick={() => setLessonEmoji(em)}
+                          className="w-7 h-7 rounded-lg text-sm bg-slate-100 hover:bg-indigo-100 flex items-center justify-center cursor-pointer"
                         >
-                          {emoji}
+                          {em}
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Description */}
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    संक्षिप्त विवरण (वैकल्पिक)
+                    संक्षिप्त विवरण (Description - वैकल्पिक)
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. हड़प्पा कालीन महत्वपूर्ण 20 वस्तुनिष्ठ प्रश्न"
+                    placeholder="उदा. महत्वपूर्ण 25 प्रश्न व संपूर्ण व्याख्या"
                     value={lessonDesc}
                     onChange={e => setLessonDesc(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm text-slate-900 font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm text-slate-900 font-medium"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Step 2: Study Notes (Optional Theory / Quick Revision) */}
+            {/* Step 2: Study Notes (Optional Theory) */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
                     2
                   </span>
-                  अध्याय के अध्ययन नोट्स व थ्योरी (Study Notes - Optional)
+                  अध्ययन नोट्स व थ्योरी (Study Notes - Optional)
                 </h2>
-                <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold border border-emerald-200 self-start sm:self-auto">
-                  छात्र नोट्स भी पढ़ सकेंगे और क्विज़ भी दे सकेंगे
-                </span>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  विस्तृत नोट्स (Markdown, तालिकायें, महत्वपूर्ण बिंदु • व 📌 समर्थित)
-                </label>
                 <textarea
                   rows={4}
-                  placeholder={`## मुख्य बिंदु\n• हड़प्पा सभ्यता 2500 ईसा पूर्व से 1750 ईसा पूर्व तक फली-फूली।\n📌 परीक्षा उपयोगी बिंदु: मोहनजोदड़ो से विशाल स्नानागार मिला।`}
+                  placeholder={`## मुख्य बिंदु\n• महत्वपूर्ण तथ्य यहाँ लिखें\n📌 परीक्षा उपयोगी बिंदु...`}
                   value={lessonNotes}
                   onChange={e => setLessonNotes(e.target.value)}
                   className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-indigo-500 text-slate-900 leading-relaxed"
@@ -474,125 +450,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
                     3
                   </span>
-                  कच्चा प्रश्न टेक्स्ट (Raw MCQ with 1-Liner Explanation) *
+                  कच्चा प्रश्न टेक्स्ट (Raw MCQ with Explanation) *
                 </h2>
 
                 <button
                   type="button"
                   onClick={handlePasteSample}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 font-bold text-xs transition-colors cursor-pointer self-start sm:self-auto"
+                  className="px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                  + 1-लाइनर नमूना पेस्ट करें
+                  <span>नमूना टेक्स्ट भरें</span>
                 </button>
               </div>
 
-              {/* Helpful Hint Card */}
-              <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
-                <div className="font-bold text-indigo-950 flex items-center gap-1">
-                  <HelpCircle className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>सही 1-लाइनर फॉर्मेट (सुझाया गया तरीका):</span>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-indigo-150 font-mono text-xs text-slate-800 leading-relaxed overflow-x-auto">
-                  1. प्रश्न यहाँ लिखें?<br />
-                  A. पहला विकल्प<br />
-                  B. दूसरा विकल्प<br />
-                  C. तीसरा विकल्प<br />
-                  D. चौथा विकल्प<br />
-                  <strong className="text-emerald-700">Ans. B</strong><br />
-                  <strong className="text-indigo-700">Exp: यहाँ अपनी 1-लाइनर व्याख्या लिखें।</strong>
-                </div>
-              </div>
-
-              {/* Textarea */}
               <div>
                 <textarea
-                  rows={9}
-                  placeholder={`यहाँ अपने प्रश्न पेस्ट करें...\n1. सिंधु सभ्यता की खोज कब हुई?\nA. 1905\nB. 1921\nAns. B\nExp: दयाराम साहनी ने 1921 में हड़प्पा की खोज की थी।`}
+                  rows={8}
+                  placeholder={`1. प्रश्न यहाँ लिखें?
+A. विकल्प 1
+B. विकल्प 2
+C. विकल्प 3
+D. विकल्प 4
+Ans. B
+Exp: विस्तृत व्याख्या यहाँ...`}
                   value={rawMCQText}
                   onChange={e => setRawMCQText(e.target.value)}
-                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-mono text-xs sm:text-sm text-slate-900 leading-relaxed placeholder:text-slate-400 focus:bg-white"
-                ></textarea>
+                  className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-indigo-500 text-slate-900 leading-relaxed"
+                  required
+                />
               </div>
 
-              {/* Parser Real-time Analysis Card */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-indigo-600" />
-                    पहचाने गए प्रश्न:
-                  </span>
-                  <span
-                    className={`font-bold px-2.5 py-0.5 rounded-full border text-xs ${
-                      parseResult.questions.length > 0
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : 'bg-slate-200 text-slate-700 border-slate-300'
-                    }`}
-                  >
-                    {parseResult.questions.length} प्रश्न
-                  </span>
-                </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                <span
+                  className={`px-2 py-0.5 rounded-md font-bold flex items-center gap-1 ${
+                    parseResult.questions.length > 0
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{parseResult.questions.length} प्रश्न पहचाने गए</span>
+                </span>
 
                 {parseResult.questions.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                    className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>{showPreview ? 'प्रिव्यू छुपाएं' : 'प्रश्नों का प्रिव्यू देखें'}</span>
+                    <span>{showPreview ? 'प्रिव्यू छिपाएं' : 'प्रिव्यू देखें'}</span>
                   </button>
                 )}
               </div>
-
-              {/* Optional Live Preview Drawer */}
-              {showPreview && parseResult.questions.length > 0 && (
-                <div className="border border-indigo-200 bg-indigo-50/40 rounded-xl p-3 space-y-3 max-h-64 overflow-y-auto">
-                  <div className="font-bold text-xs text-indigo-950">
-                    पहचाने गए प्रश्नों की झलक (Preview):
-                  </div>
-                  {parseResult.questions.map((q, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1"
-                    >
-                      <div className="font-bold text-slate-900">
-                        Q{idx + 1}. {q.questionText}
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 text-slate-700 text-xs pt-1">
-                        {q.options.map(opt => (
-                          <div
-                            key={opt.label}
-                            className={`px-2 py-1 rounded ${
-                              opt.label === q.correctAnswer
-                                ? 'bg-emerald-100 font-bold text-emerald-900 border border-emerald-300'
-                                : 'bg-slate-50'
-                            }`}
-                          >
-                            <strong>{opt.label}.</strong> {opt.text}
-                          </div>
-                        ))}
-                      </div>
-                      {q.explanation && (
-                        <div className="mt-1 text-xs text-indigo-900 bg-indigo-50 p-2 rounded border border-indigo-150">
-                          <strong>व्याख्या:</strong> {q.explanation}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Save Success Banner */}
+            {/* Save Success Alert */}
             {lessonSaveSuccess && (
-              <div className="bg-emerald-100 border border-emerald-400 text-emerald-900 p-3.5 rounded-2xl flex items-center gap-2 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
-                <span>लेसन सफलतापूर्वक सहेज लिया गया! लेसन सूची पर जा रहे हैं...</span>
+              <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+                <span>पाठ सफलतापूर्वक सहेज लिया गया!</span>
               </div>
             )}
 
-            {/* Submit Action Button */}
+            {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -604,392 +525,205 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 }`}
               >
                 <Check className="w-5 h-5" />
-                <span>
-                  {editingLessonId ? 'संशोधन सुरक्षित करें (Update Lesson)' : 'नया लेसन सहेजें और जोड़ें'}
-                </span>
+                <span>{editingLessonId ? 'अपडेट सुरक्षित करें' : 'पाठ सहेजें और जोड़ें'}</span>
               </button>
             </div>
           </form>
         )}
 
-        {/* TAB 2: LESSON FOLDERS LIST */}
+        {/* TAB 2: LESSONS LIST */}
         {activeTab === 'lessons' && (
-          <div className="space-y-3.5">
-            {/* Search and count header */}
+          <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div className="text-xs font-bold text-slate-800">
-                कुल उपलब्ध लेसन्स: {lessons.length}
+                कुल उपलब्ध पाठ: {filteredLessons.length}
               </div>
-              <div className="w-full sm:w-64">
-                <input
-                  type="text"
-                  placeholder="लेसन का नाम खोजें..."
-                  value={lessonSearch}
-                  onChange={e => setLessonSearch(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="पाठ खोजें..."
+                value={lessonSearch}
+                onChange={e => setLessonSearch(e.target.value)}
+                className="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
             </div>
 
-            {/* Lessons List */}
-            {filteredLessons.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredLessons.map((lesson, idx) => {
-                  const cat = categories.find(c => c.id === lesson.categoryId);
-                  const qCount = lesson.questions?.length || 0;
+            <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-xs">
+              {filteredLessons.map(lesson => {
+                const cat = categories.find(c => c.id === lesson.categoryId);
+                const qCount = lesson.questions?.length || 0;
 
-                  return (
-                    <div
-                      key={lesson.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-indigo-300 shadow-xs flex flex-col justify-between group space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <span className="text-3xl p-2 rounded-xl bg-slate-50 border border-slate-200 shrink-0">
-                            {lesson.iconEmoji || '📖'}
-                          </span>
-                          <div>
-                            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-150">
-                              {cat?.name || 'अध्ययन'}
-                            </span>
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900 mt-1">
-                              {lesson.title}
-                            </h3>
-                            {lesson.description && (
-                              <p className="text-xs text-slate-700 line-clamp-2 mt-1">
-                                {lesson.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bottom bar with action buttons */}
-                      <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-slate-800">
-                            {qCount} MCQs
-                          </span>
-                          {lesson.notes && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                              📖 नोट्स
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          {onStartQuiz && (
-                            <button
-                              type="button"
-                              onClick={() => onStartQuiz(lesson.id)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 cursor-pointer"
-                              title="क्विज़ शुरू करें"
-                            >
-                              <Play className="w-3 h-3 fill-current" />
-                              <span>क्विज़</span>
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleEditLesson(lesson)}
-                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold flex items-center gap-1 border border-indigo-200 cursor-pointer"
-                            title="प्रश्नों को एडिट करें"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            <span>एडिट</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`क्या आप "${lesson.title}" को हटाना चाहते हैं?`)) {
-                                onDeleteLesson(lesson.id);
-                              }
-                            }}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="लेसन हटाएं"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                return (
+                  <div
+                    key={lesson.id}
+                    className="p-3.5 hover:bg-slate-50 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl p-1 bg-slate-50 rounded-lg border border-slate-200 shrink-0">
+                        {lesson.iconEmoji || '📖'}
+                      </span>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                          {cat?.name || 'विषय'}
+                        </span>
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
+                          {lesson.title}
+                        </h3>
+                        {lesson.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1">
+                            {lesson.description}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-700 text-xs">
-                कोई लेसन नहीं मिला। नया लेसन जोड़ने के लिए पहले टैब "MCQ अपलोड" पर जाएं।
-              </div>
-            )}
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded hidden sm:inline">
+                        {qCount} MCQs
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEditLesson(lesson)}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        एडिट
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`क्या आप "${lesson.title}" को हटाना चाहते हैं?`)) {
+                            onDeleteLesson(lesson.id);
+                          }
+                        }}
+                        className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* TAB 3: CATEGORY MANAGER */}
+        {/* TAB 3: CATEGORIES */}
         {activeTab === 'categories' && (
           <div className="space-y-4">
-            {/* Add / Edit Category Form */}
             <form
               onSubmit={handleSaveCategory}
               className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3.5"
             >
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                <span>
-                  {editingCatId ? 'श्रेणी संपादित करें (Edit Category)' : '+ नई श्रेणी जोड़ें'}
-                </span>
+                <span>{editingCatId ? 'श्रेणी संपादित करें' : '+ नई श्रेणी जोड़ें'}</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    श्रेणी का नाम (Category Name) *
+                    श्रेणी का नाम *
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. अर्थशास्त्र (Economics)"
+                    placeholder="उदा. अर्थशास्त्र"
                     value={catName}
                     onChange={e => setCatName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm font-medium text-slate-900"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900"
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    रंग थीम (Color Theme)
-                  </label>
-                  <select
-                    value={catColor}
-                    onChange={e => setCatColor(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xs text-slate-900 font-medium"
-                  >
-                    <option value="amber">अंबर पीला (Amber)</option>
-                    <option value="emerald">पन्ना हरा (Emerald)</option>
-                    <option value="indigo">गहरा नीला (Indigo)</option>
-                    <option value="rose">गुलाबी / लाल (Rose)</option>
-                    <option value="sky">आसमानी नीला (Sky)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3.5">
-                {/* Category Emoji with custom keyboard support */}
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <label className="block text-xs font-bold text-slate-800">
-                      आइकॉन इमोजी (Emoji - कीबोर्ड से कोई भी इमोजी टाइप/पेस्ट करें)
-                    </label>
-                    <span className="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">
-                      चयनित: {catEmoji || '📜'}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-                    {/* Direct Keyboard Input */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <input
-                        type="text"
-                        value={catEmoji}
-                        onChange={e => setCatEmoji(e.target.value)}
-                        placeholder="📜"
-                        className="w-16 h-11 text-center text-2xl bg-white border-2 border-indigo-400 focus:border-indigo-600 rounded-xl font-bold shadow-xs focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900"
-                        title="यहाँ कीबोर्ड से कोई भी कस्टम इमोजी टाइप या पेस्ट करें"
-                      />
-                      <span className="text-xs text-slate-500 font-medium">
-                        ← कीबोर्ड से टाइप करें
-                      </span>
-                    </div>
-
-                    {/* Quick Select Buttons */}
-                    <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto py-1">
-                      {['📜', '🌍', '⚖️', '🔬', '📈', '🏛️', '💡', '📚', '🎯', '💻', '🇮🇳', '⚡', '🧬', '💰', '🌿', '🧠', '📊', '👑', '⚔️', '📝'].map(em => (
-                        <button
-                          type="button"
-                          key={em}
-                          onClick={() => setCatEmoji(em)}
-                          className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center border transition-all cursor-pointer ${
-                            catEmoji === em
-                              ? 'bg-indigo-100 border-indigo-600 scale-110 shadow-xs'
-                              : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          {em}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    विवरण (Description - संक्षिप्त परिचय)
+                    इमोजी आइकॉन
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. भारतीय अर्थव्यवस्था, बजट और महत्वपूर्ण सिद्धांत"
-                    value={catDesc}
-                    onChange={e => setCatDesc(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm text-slate-900 font-medium"
+                    value={catEmoji}
+                    onChange={e => setCatEmoji(e.target.value)}
+                    placeholder="📜"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900"
                   />
                 </div>
               </div>
 
-              {catSaveSuccess && (
-                <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 p-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  <span>श्रेणी सफलतापूर्वक सहेज ली गई!</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                {editingCatId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCatId(null);
-                      setCatName('');
-                      setCatDesc('');
-                    }}
-                    className="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl"
-                  >
-                    रद्द करें
-                  </button>
-                )}
+              <div className="flex justify-end gap-2">
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {editingCatId ? 'श्रेणी अपडेट करें' : '+ श्रेणी जोड़ें'}
+                  <Check className="w-4 h-4" />
+                  <span>{editingCatId ? 'अपडेट करें' : '+ श्रेणी जोड़ें'}</span>
                 </button>
               </div>
             </form>
 
-            {/* Existing Categories Cards */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-slate-800">
-                मौजूदा श्रेणियां ({categories.length})
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {categories.map((cat, idx) => {
-                  const catLessons = lessons.filter(l => l.categoryId === cat.id);
-                  const mcqCount = catLessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
-
-                  return (
-                    <div
-                      key={cat.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl p-2 rounded-xl bg-slate-50 border border-slate-200">
-                          {cat.iconEmoji}
-                        </span>
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900">{cat.name}</h4>
-                          <span className="text-xs font-semibold text-slate-700">
-                            {catLessons.length} लेसन्स • {mcqCount} प्रश्न
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditCat(cat)}
-                          className="p-1.5 text-indigo-700 hover:bg-indigo-50 rounded-lg cursor-pointer"
-                          title="श्रेणी संपादित करें"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`क्या आप श्रेणी "${cat.name}" और इसके सभी लेसन्स को हटाना चाहते हैं?`)) {
-                              onDeleteCategory(cat.id);
-                            }
-                          }}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-                          title="श्रेणी हटाएं"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+              <h3 className="text-xs font-bold text-slate-700">मौजूदा श्रेणियां ({categories.length})</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {categories.map(cat => (
+                  <div
+                    key={cat.id}
+                    className="p-3 border border-slate-200 rounded-xl bg-slate-50/50 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{cat.iconEmoji}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900">{cat.name}</h4>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleStartEditCat(cat)}
+                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`क्या आप श्रेणी "${cat.name}" को हटाना चाहते हैं?`)) {
+                            onDeleteCategory(cat.id);
+                          }
+                        }}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal for Data Management (Clear Data or Load Standard) */}
+      {/* Reset Confirmation Modal */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-slate-900 border-b border-slate-200 pb-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center">
-                <RotateCcw className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">डेटा प्रबंधन (Data Management)</h3>
-                <p className="text-xs text-slate-600">डेटा साफ़ करें या डिफ़ॉल्ट सिलेबस बहाल करें</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs sm:text-sm">
-              {/* Option 1: Clear All Data */}
-              <div className="p-3.5 rounded-2xl border border-rose-200 bg-rose-50/60 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-rose-900">
-                  <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>सारा डेटा साफ़ करें (Clear All Data / Fresh Start)</span>
-                </div>
-                <p className="text-xs text-rose-800 leading-relaxed">
-                  सभी मौजूदा श्रेणियां, लेसन्स और टेस्ट इतिहास हटा दिए जाएंगे ताकि आप अपनी खुद की सामग्री शून्य से जोड़ सकें।
-                </p>
-                <button
-                  onClick={() => {
-                    setShowResetConfirm(false);
-                    if (onClearAllData) {
-                      onClearAllData();
-                    }
-                  }}
-                  className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 shadow-xs"
-                >
-                  हाँ, सारा डेटा साफ़ करें (0 आइटम)
-                </button>
-              </div>
-
-              {/* Option 2: Restore Standard NCERT/UPSC Syllabus */}
-              <div className="p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/60 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-indigo-900">
-                  <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>प्रमाणिक सिलेबस लोड करें (Load Standard Syllabus)</span>
-                </div>
-                <p className="text-xs text-indigo-800 leading-relaxed">
-                  इतिहास, भूगोल, राजव्यवस्था और विज्ञान के वास्तविक NCERT/PYQ वस्तुनिष्ठ प्रश्न व नोट्स लोड करें।
-                </p>
-                <button
-                  onClick={() => {
-                    setShowResetConfirm(false);
-                    onResetData();
-                  }}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 shadow-xs"
-                >
-                  मानक सिलेबस पुनर्स्थापित करें
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-indigo-600" />
+              <span>डेटा रीसेट</span>
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              क्या आप डिफ़ॉल्ट विषय व लेसन्स को पुनः लोड करना चाहते हैं?
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
               >
-                रद्द करें (Cancel)
+                रद्द करें
+              </button>
+              <button
+                onClick={() => {
+                  onResetData();
+                  setShowResetConfirm(false);
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs cursor-pointer"
+              >
+                डिफ़ॉल्ट डेटा लोड करें
               </button>
             </div>
           </div>

@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
         // Handle Android Back Navigation
         setupBackNavigation()
 
-        // Load the Exam Veda Web App
+        // Load the Edu Veda Web App
         val targetUrl = getString(R.string.web_url)
         if (savedInstanceState == null) {
             if (isNetworkAvailable()) {

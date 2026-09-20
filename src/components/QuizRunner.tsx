@@ -145,7 +145,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
               क्विज़ छोड़ें
             </button>
             <span className="text-slate-300">•</span>
-            <span className="text-xs font-medium text-slate-700 truncate max-w-[180px] sm:max-w-xs">
+            <span className="text-xs font-semibold text-slate-800 truncate max-w-[180px] sm:max-w-xs">
               {lesson.title}
             </span>
           </div>

@@ -15,7 +15,7 @@ export interface Question {
 export interface Lesson {
   id: string;
   categoryId: string;
-  title: string;
+  title: string; // Display title
   description?: string;
   iconEmoji: string;
   questions: Question[];
@@ -55,8 +55,7 @@ export type ActiveView =
   | { type: 'notes_hub'; categoryId?: string }
   | { type: 'note_viewer'; lessonId: string; fromView?: 'categories' | 'category_detail' | 'notes_hub'; returnView?: ActiveView }
   | { type: 'quiz'; lessonId: string }
-  | { type: 'quiz_analysis'; result: QuizResult; lessonId: string }
+  | { type: 'quiz_analysis'; result: QuizResult; lessonId?: string }
   | { type: 'history' }
   | { type: 'ai_tutor'; initialQuery?: string }
   | { type: 'admin'; initialTab?: 'upload' | 'categories' | 'lessons'; defaultCategoryId?: string };
-

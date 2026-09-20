@@ -43,21 +43,25 @@ export const NotesHub: React.FC<NotesHubProps> = ({
   );
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter lessons by selected category (or 'saved') and search term
+  // Filter lessons by selected category (or 'saved')
   const filteredLessons = lessons.filter(lesson => {
-    let matchesCategory = true;
+    // 1. Category Filter
     if (activeCategoryId === 'saved') {
-      matchesCategory = savedOfflineNoteIds.includes(lesson.id);
-    } else if (activeCategoryId !== 'all') {
-      matchesCategory = lesson.categoryId === activeCategoryId;
+      if (!savedOfflineNoteIds.includes(lesson.id)) return false;
+    } else if (activeCategoryId !== 'all' && lesson.categoryId !== activeCategoryId) {
+      return false;
     }
 
-    const matchesSearch =
-      lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (lesson.description && lesson.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lesson.notes && lesson.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+    // 2. Search Filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      const matchTitle = lesson.title.toLowerCase().includes(q);
+      const matchDesc = lesson.description?.toLowerCase().includes(q);
+      const matchNotes = lesson.notes?.toLowerCase().includes(q);
+      return matchTitle || matchDesc || matchNotes;
+    }
 
-    return matchesCategory && matchesSearch;
+    return true;
   });
 
   const getCategoryForLesson = (catId: string) => {
@@ -72,7 +76,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4">
+    <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4 text-slate-900">
       {/* Top Banner Header */}
       <div className="rounded-2xl border border-indigo-200 bg-linear-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -84,7 +88,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-300 mb-0.5">
                 <span>अध्ययन सामग्री</span>
                 <span>•</span>
-                <span>{lessons.length} पाठ नोट्स</span>
+                <span>{lessons.length} अध्याय उपलब्ध</span>
                 <span>•</span>
                 <span>परीक्षा उपयोगी थ्योरी</span>
               </div>
@@ -138,7 +142,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
                 ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
             }`}
-            title="ऑफलाइन अध्ययन के लिए सहेजे और डाउनलोड किए गए नोट्स"
+            title="ऑफलाइन अध्ययन के लिए सहेजे गए नोट्स"
           >
             <BookmarkCheck className={`w-3.5 h-3.5 ${activeCategoryId === 'saved' ? 'text-white' : 'text-amber-600'}`} />
             <span>सहेजे गए / डाउनलोड नोट्स</span>
@@ -186,7 +190,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
             placeholder="नोट्स या विषय खोजें..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-xs"
+            className="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-xs text-slate-900"
           />
         </div>
       </div>
@@ -196,14 +200,14 @@ export const NotesHub: React.FC<NotesHubProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {filteredLessons.map(lesson => {
             const category = getCategoryForLesson(lesson.categoryId);
-            const qCount = lesson.questions?.length || 0;
-            const hasNotes = Boolean(lesson.notes);
             const readTime = calculateReadTime(lesson.notes);
+            const isSaved = savedOfflineNoteIds.includes(lesson.id);
 
             return (
               <div
                 key={lesson.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between group"
+                onClick={() => onReadNote(lesson.id)}
+                className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group"
               >
                 <div>
                   {/* Category & Read Time Tags */}
@@ -212,7 +216,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-150 truncate">
                         {category?.name || 'सामान्य अध्ययन'}
                       </span>
-                      {savedOfflineNoteIds.includes(lesson.id) && (
+                      {isSaved && (
                         <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                           <BookmarkCheck className="w-3 h-3 text-amber-600" />
                           <span>ऑफलाइन सेव</span>
@@ -231,10 +235,7 @@ export const NotesHub: React.FC<NotesHubProps> = ({
                       {lesson.iconEmoji || '📖'}
                     </span>
                     <div>
-                      <h3
-                        onClick={() => onReadNote(lesson.id)}
-                        className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors cursor-pointer"
-                      >
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                         {lesson.title}
                       </h3>
                       {lesson.description && (
@@ -248,47 +249,41 @@ export const NotesHub: React.FC<NotesHubProps> = ({
                   {/* Excerpt Snippet */}
                   {lesson.notes && (
                     <div className="bg-slate-50/80 rounded-xl p-2.5 text-xs text-slate-700 border border-slate-150 line-clamp-2 mb-3 leading-relaxed">
-                      {lesson.notes
-                        .replace(/[#*`_~|]/g, '')
-                        .replace(/---/g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .slice(0, 140)}
-                      ...
+                      {lesson.notes.replace(/[#*`_~|]/g, '').replace(/---/g, ' ')}
                     </div>
                   )}
                 </div>
 
-                {/* Bottom Dual Action: 1. Read Notes, 2. Take Quiz - Right alongside each other! */}
-                <div className="pt-2.5 border-t border-slate-150 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-700">
-                    <Layers className="w-3 h-3 text-indigo-600" />
-                    <span>{qCount} MCQs</span>
-                  </div>
+                {/* Bottom Action Footer */}
+                <div
+                  className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <span className="text-xs font-semibold text-slate-500">
+                    {lesson.questions?.length || 0} वस्तुनिष्ठ प्रश्न
+                  </span>
 
                   <div className="flex items-center gap-2">
-                    {/* 1. Read Notes button */}
                     <button
+                      type="button"
                       onClick={() => onReadNote(lesson.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all cursor-pointer active:scale-98"
-                      title="इस पाठ के विस्तृत नोट्स पढ़ें"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors cursor-pointer"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
                       <span>नोट्स पढ़ें</span>
                     </button>
-
-                    {/* 2. Take Quiz button */}
                     <button
+                      type="button"
                       onClick={() => onStartQuiz(lesson.id)}
-                      disabled={qCount === 0}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
-                        qCount > 0
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-98'
-                          : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      disabled={!lesson.questions || lesson.questions.length === 0}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        lesson.questions && lesson.questions.length > 0
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       }`}
-                      title="इस पाठ का लाइव मॉक टेस्ट दें"
                     >
                       <Play className="w-3 h-3 fill-current" />
-                      <span>क्विज़ दें</span>
+                      <span>टेस्ट</span>
                     </button>
                   </div>
                 </div>
@@ -296,35 +291,29 @@ export const NotesHub: React.FC<NotesHubProps> = ({
             );
           })}
         </div>
-      ) : activeCategoryId === 'saved' ? (
-        <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40">
-          <div className="text-4xl mb-3">📑</div>
-          <h3 className="text-base font-bold text-slate-800">कोई सहेजा गया नोट्स नहीं मिला</h3>
-          <p className="text-xs text-slate-650 mt-1 max-w-sm mx-auto leading-relaxed">
-            आपने अभी तक किसी नोट्स को ऑफलाइन अध्ययन हेतु सहेजा नहीं है। किसी भी पाठ के नोट्स खोलकर "ऑफलाइन डाउनलोड" या "सहेजें" बटन दबाएं ताकि इंटरनेट न होने पर भी आप तुरंत पढ़ सकें।
-          </p>
-          <button
-            onClick={() => setActiveCategoryId('all')}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors cursor-pointer"
-          >
-            सभी विषय देखें
-          </button>
-        </div>
       ) : (
         <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
-          <div className="text-4xl mb-3">📖</div>
-          <h3 className="text-base font-bold text-slate-800">कोई नोट्स नहीं मिला</h3>
-          <p className="text-xs text-slate-650 mt-1 max-w-sm mx-auto">
-            {searchTerm
-              ? `"${searchTerm}" से संबंधित कोई पाठ नहीं मिला।`
-              : 'इस श्रेणी में अभी कोई नोट्स नहीं जुड़े हैं।'}
+          <div className="text-4xl mb-3">
+            {activeCategoryId === 'saved' ? '📑' : '📖'}
+          </div>
+          <h3 className="text-base font-bold text-slate-800">
+            {activeCategoryId === 'saved'
+              ? 'कोई सहेजा हुआ ऑफलाइन नोट्स नहीं मिला'
+              : searchTerm
+              ? 'कोई मेल खाता नोट्स नहीं मिला'
+              : 'इस विषय में अभी कोई नोट्स उपलब्ध नहीं है'}
+          </h3>
+          <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto">
+            {activeCategoryId === 'saved'
+              ? 'किसी भी अध्याय को पढ़ते समय "सहेजें" बटन पर क्लिक करके ऑफलाइन एक्सेस करें।'
+              : 'एडमिन पोर्टल से अपने नोट्स और परीक्षा सारांश आसानी से जोड़ें।'}
           </p>
           <button
             onClick={() => onOpenAdmin('upload')}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors cursor-pointer"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            + नया लेसन या नोट्स जोड़ें
+            + नया नोट्स जोड़ें
           </button>
         </div>
       )}

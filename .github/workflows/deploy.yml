@@ -1,4 +1,4 @@
-name: Deploy Exam Veda to GitHub Pages
+name: Deploy Edu Veda to GitHub Pages
 
 on:
   push:

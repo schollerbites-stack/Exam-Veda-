@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ActiveView } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
+import { EduVedaEmblem } from './EduVedaLogo';
 
 interface NavbarProps {
   activeView: ActiveView;
@@ -55,32 +56,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2 text-left group focus:outline-hidden cursor-pointer"
             title="होम डैशबोर्ड पर जाएं"
           >
-            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs group-hover:scale-105 transition-transform flex-shrink-0 bg-indigo-600">
-              <img
-                src={`${import.meta.env.BASE_URL}icon.svg`}
-                alt="Exam Veda Logo"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  // Fallback if SVG fails to load
-                  const img = e.currentTarget;
-                  if (!img.src.includes('pwa-192x192.png')) {
-                    img.src = `${import.meta.env.BASE_URL}pwa-192x192.png`;
-                  }
-                }}
-              />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-xs group-hover:scale-105 transition-transform flex-shrink-0 bg-white border border-slate-200/80 p-0.5 flex items-center justify-center">
+              <EduVedaEmblem className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-indigo-600 transition-colors">
-                  Exam Veda
+                <span className="font-extrabold text-sm sm:text-base tracking-tight transition-colors">
+                  <span className="text-[#0c2340]">Edu</span> <span className="text-[#f97316]">Veda</span>
                 </span>
-                <span className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-bold bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200">
+                <span className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-bold bg-orange-50 text-orange-700 rounded-md border border-orange-200">
                   क्विज़ व नोट्स
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 hidden md:block leading-none mt-0.5">
-                Exam Veda - नोट्स, 1-लाइनर व AI अध्ययन साथी
+                Edu Veda - नोट्स, 1-लाइनर व AI अध्ययन साथी
               </p>
             </div>
           </button>

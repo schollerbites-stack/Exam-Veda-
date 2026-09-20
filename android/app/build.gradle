@@ -16,7 +16,7 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [
-            appName: "Exam Veda"
+            appName: "Edu Veda"
         ]
     }
 

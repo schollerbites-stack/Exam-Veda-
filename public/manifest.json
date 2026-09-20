@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Exam Veda",
-  "short_name": "Exam Veda",
-  "description": "Exam Veda - अध्ययन सामग्री, क्विज़ और Veda AI अध्ययन साथी।",
+  "name": "Edu Veda",
+  "short_name": "Edu Veda",
+  "description": "Edu Veda - अध्ययन सामग्री, क्विज़ और Edu Veda AI अध्ययन साथी।",
   "theme_color": "#071b4a",
   "background_color": "#030c27",
   "display": "standalone",

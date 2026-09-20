@@ -20,7 +20,7 @@
     </linearGradient>
 
     <!-- Orange / Gold Student Head & Body Gradient -->
-    <linearGradient id="orangeStudent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="orangeStudent" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#fbbf24" />
       <stop offset="35%" stop-color="#f97316" />
       <stop offset="100%" stop-color="#ea580c" />

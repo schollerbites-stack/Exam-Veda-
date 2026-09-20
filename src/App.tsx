@@ -36,22 +36,14 @@ export default function App() {
     return INITIAL_CATEGORIES;
   });
 
-  // Lessons State (with fallback migration so existing storage gets notes)
+  // Lessons State
   const [lessons, setLessons] = useState<Lesson[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_LESSONS);
       if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.map((item: Lesson) => {
-            if (!item.notes) {
-              const defaultMatch = INITIAL_LESSONS.find(init => init.id === item.id);
-              if (defaultMatch && defaultMatch.notes) {
-                return { ...item, notes: defaultMatch.notes };
-              }
-            }
-            return item;
-          });
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
       }
     } catch (e) {

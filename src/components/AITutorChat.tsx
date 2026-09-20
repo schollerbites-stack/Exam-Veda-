@@ -784,8 +784,8 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${effectiveOpenRouterKey}`,
-                'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://examveda.app',
-                'X-Title': 'Exam Veda',
+                'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://eduveda.app',
+                'X-Title': 'Edu Veda',
               },
               body: JSON.stringify({
                 model: openRouterModel,
@@ -793,7 +793,7 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
                   {
                     role: 'system',
                     content:
-                      'आप एक उत्कृष्ट हिंदी शिक्षक (Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
+                      'आप एक उत्कृष्ट हिंदी शिक्षक (Edu Veda AI) हैं। छात्र को स्वच्छ, बुलेट पॉइंट्स व परीक्षा उपयोगी नोट्स में स्पष्ट उत्तर दें।',
                   },
                   ...orMessages,
                 ],

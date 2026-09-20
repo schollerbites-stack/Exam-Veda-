@@ -1,0 +1,57 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.2"
+        android:scaleY="0.2"
+        android:translateX="3"
+        android:translateY="3">
+        
+        <!-- Graduation Cap -->
+        <path
+            android:fillColor="#0E2A66"
+            android:pathData="M256,76 L366,118 L256,160 L146,118 Z" />
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M256,76 L146,118 L256,160 Z" />
+        <path
+            android:fillColor="#091D44"
+            android:pathData="M194,142 L194,166 C194,186 318,186 318,166 L318,142 Z" />
+
+        <!-- Student Head -->
+        <path
+            android:fillColor="#F97316"
+            android:pathData="M256,176m-23,0a23,23 0,1 1,46 0a23,23 0,1 1,-46 0" />
+
+        <!-- Student Body V-Arms -->
+        <path
+            android:fillColor="#EA580C"
+            android:pathData="M166,168 C206,192 248,242 256,278 C264,242 306,192 346,168 C314,212 272,268 256,290 C240,268 198,212 166,168 Z" />
+
+        <!-- Open Book Base Layer 1 -->
+        <path
+            android:fillColor="#0F2B60"
+            android:pathData="M256,312 C180,300 110,320 62,342 C108,328 178,312 256,322 Z" />
+        <path
+            android:fillColor="#0F2B60"
+            android:pathData="M256,312 C332,300 402,320 450,342 C404,328 334,312 256,322 Z" />
+
+        <!-- Open Book Base Layer 2 -->
+        <path
+            android:fillColor="#0284C7"
+            android:pathData="M256,306 C180,288 105,306 58,328 C104,312 178,296 256,314 Z" />
+        <path
+            android:fillColor="#0284C7"
+            android:pathData="M256,306 C332,288 407,306 454,328 C408,312 334,296 256,314 Z" />
+
+        <!-- Open Book Base Layer 3 -->
+        <path
+            android:fillColor="#00B4D8"
+            android:pathData="M256,298 C180,274 110,290 92,306 C132,286 186,274 256,298 Z" />
+        <path
+            android:fillColor="#00B4D8"
+            android:pathData="M256,298 C332,274 402,290 420,306 C380,286 326,274 256,298 Z" />
+    </group>
+</vector>

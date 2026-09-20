@@ -1,4 +1,4 @@
-name: Build Exam Veda Android APK
+name: Build Edu Veda Android APK
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'Exam Veda Deployed URL (optional, leave blank to use default)'
+        description: 'Edu Veda Deployed URL (optional, leave blank to use default)'
         required: false
         default: ''
 

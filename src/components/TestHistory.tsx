@@ -97,7 +97,7 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
 
   const handleDownloadReport = () => {
     if (history.length === 0) return;
-    let report = `Exam Veda - विद्यार्थी टेस्ट रिकॉर्ड व प्रोग्रेस कार्ड\n`;
+    let report = `Edu Veda - विद्यार्थी टेस्ट रिकॉर्ड व प्रोग्रेस कार्ड\n`;
     report += `दिनांक: ${new Date().toLocaleDateString('hi-IN')}\n`;
     report += `कुल टेस्ट: ${totalTests} | कुल प्रश्न: ${totalQuestions} | औसत सटीकता: ${avgAccuracy}%\n`;
     report += `सही उत्तर: ${totalCorrect} | गलत उत्तर: ${totalWrong}\n`;
