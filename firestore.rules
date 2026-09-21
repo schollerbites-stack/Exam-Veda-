@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shared educational content is publicly readable and synchronized across all app users
+    match /categories/{categoryId} {
+      allow read, write: if true;
+    }
+    match /lessons/{lessonId} {
+      allow read, write: if true;
+    }
+    match /phases/{phaseId} {
+      allow read, write: if true;
+    }
+    match /mockTests/{testId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

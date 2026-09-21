@@ -27,7 +27,7 @@ interface NoteViewerProps {
   onAskAI?: (query: string) => void;
 }
 
-export const NoteViewer: React.FC<NoteViewerProps> = ({
+export const NoteViewer: React.FC<NoteViewerProps> = React.memo(({
   lesson,
   category,
   allCategoryLessons = [],
@@ -502,4 +502,6 @@ GK Mock Test App
       </div>
     </div>
   );
-};
+});
+
+export default NoteViewer;

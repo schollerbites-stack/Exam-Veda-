@@ -30,7 +30,7 @@ interface TestHistoryProps {
   onNavigateHome: () => void;
 }
 
-export const TestHistory: React.FC<TestHistoryProps> = ({
+export const TestHistory: React.FC<TestHistoryProps> = React.memo(({
   history,
   categories,
   lessons,
@@ -439,4 +439,6 @@ export const TestHistory: React.FC<TestHistoryProps> = ({
       )}
     </div>
   );
-};
+});
+
+export default TestHistory;

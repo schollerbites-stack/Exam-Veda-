@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Category, Lesson, ActiveView, QuizResult } from './types';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { Category, Lesson, ActiveView, QuizResult, CloudSyncStatus } from './types';
 import { INITIAL_CATEGORIES, INITIAL_LESSONS } from './data/initialData';
+import { cloudSync } from './lib/cloudSync';
 import { Navbar } from './components/Navbar';
 import { CategoryGrid } from './components/CategoryGrid';
-import { CategoryDetail } from './components/CategoryDetail';
-import { NoteViewer } from './components/NoteViewer';
-import { NotesHub } from './components/NotesHub';
-import { QuizRunner } from './components/QuizRunner';
-import { QuizAnalysis } from './components/QuizAnalysis';
-import { AdminPanel } from './components/AdminPanel';
 import { BottomNav } from './components/BottomNav';
-import { TestHistory } from './components/TestHistory';
-import { AITutorChat } from './components/AITutorChat';
 import { OfflineIndicator } from './components/PWAInstallButton';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
+
+const CategoryDetail = lazy(() => import('./components/CategoryDetail'));
+const NoteViewer = lazy(() => import('./components/NoteViewer'));
+const NotesHub = lazy(() => import('./components/NotesHub'));
+const QuizRunner = lazy(() => import('./components/QuizRunner'));
+const QuizAnalysis = lazy(() => import('./components/QuizAnalysis'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const TestHistory = lazy(() => import('./components/TestHistory'));
+const AITutorChat = lazy(() => import('./components/AITutorChat'));
 
 const STORAGE_KEY_CATEGORIES = 'study_handler_categories_v1';
 const STORAGE_KEY_LESSONS = 'study_handler_lessons_v1';
@@ -22,13 +24,13 @@ const STORAGE_KEY_HISTORY = 'study_handler_quiz_history_v1';
 const STORAGE_KEY_SAVED_NOTES = 'study_handler_saved_notes_v1';
 
 export default function App() {
-  // Categories State
+  // Categories State (loaded from cache first, then synced real-time from Cloud Database)
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CATEGORIES);
       if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {
       console.error('Failed to load categories from localStorage:', e);
@@ -36,7 +38,7 @@ export default function App() {
     return INITIAL_CATEGORIES;
   });
 
-  // Lessons State
+  // Lessons State (loaded from cache first, then synced real-time from Cloud Database)
   const [lessons, setLessons] = useState<Lesson[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_LESSONS);
@@ -52,7 +54,18 @@ export default function App() {
     return INITIAL_LESSONS;
   });
 
-  // Sound preference
+  // Cloud Database Sync Status
+  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>({
+    isConnected: false,
+    isSyncing: false,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    lastSyncedAt: null,
+    totalCloudLessons: 0,
+    totalCloudCategories: 0,
+    error: null,
+  });
+
+  // Sound preference (Local device)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SOUND);
@@ -62,7 +75,7 @@ export default function App() {
     }
   });
 
-  // Test History State (Persistent student performance record)
+  // Test History State (Persistent local student performance record)
   const [history, setHistory] = useState<QuizResult[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_HISTORY);
@@ -76,7 +89,7 @@ export default function App() {
     return [];
   });
 
-  // Offline Saved / Downloaded Notes state
+  // Offline Saved / Downloaded Notes state (Local device)
   const [savedOfflineNoteIds, setSavedOfflineNoteIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SAVED_NOTES);
@@ -97,6 +110,37 @@ export default function App() {
     }
     return { type: 'categories' };
   });
+
+  // Real-time Cloud Database Synchronization
+  useEffect(() => {
+    // 1. Initialize real-time synchronization with Firestore
+    cloudSync.initRealtimeSync();
+
+    // 2. Subscribe to real-time categories from Cloud Database
+    const unsubCats = cloudSync.subscribeCategories((cloudCategories) => {
+      if (cloudCategories && cloudCategories.length > 0) {
+        setCategories(cloudCategories);
+      }
+    });
+
+    // 3. Subscribe to real-time lessons from Cloud Database
+    const unsubLes = cloudSync.subscribeLessons((cloudLessons) => {
+      if (cloudLessons && cloudLessons.length > 0) {
+        setLessons(cloudLessons);
+      }
+    });
+
+    // 4. Subscribe to sync status
+    const unsubStatus = cloudSync.subscribeStatus((status) => {
+      setSyncStatus(status);
+    });
+
+    return () => {
+      unsubCats();
+      unsubLes();
+      unsubStatus();
+    };
+  }, []);
 
   // Keep a ref to activeView to avoid race conditions or circular loops
   const activeViewRef = React.useRef(activeView);
@@ -153,7 +197,7 @@ export default function App() {
     }
   }, []);
 
-  // Back Navigation Helper: if browser history has depth, uses history.back(); otherwise navigates to fallback
+  // Back Navigation Helper
   const navigateBack = React.useCallback((fallbackView: ActiveView = { type: 'categories' }) => {
     if (typeof window !== 'undefined') {
       const currentStep = (window.history.state?.step as number) ?? 0;
@@ -165,23 +209,7 @@ export default function App() {
     navigateTo(fallbackView, true);
   }, [navigateTo]);
 
-  // Sync state to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
-    } catch (e) {
-      console.error('Failed to save categories:', e);
-    }
-  }, [categories]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_LESSONS, JSON.stringify(lessons));
-    } catch (e) {
-      console.error('Failed to save lessons:', e);
-    }
-  }, [lessons]);
-
+  // Local device storage backups
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_SOUND, JSON.stringify(soundEnabled));
@@ -206,15 +234,15 @@ export default function App() {
     }
   }, [savedOfflineNoteIds]);
 
-  const handleToggleSaveOfflineNote = (lessonId: string) => {
+  const handleToggleSaveOfflineNote = useCallback((lessonId: string) => {
     setSavedOfflineNoteIds(prev =>
       prev.includes(lessonId) ? prev.filter(id => id !== lessonId) : [...prev, lessonId]
     );
-  };
+  }, []);
 
   // Open Admin helper (navigates to full-screen mobile Admin page)
-  const handleOpenAdmin = (
-    tab: 'upload' | 'categories' | 'lessons' = 'upload',
+  const handleOpenAdmin = useCallback((
+    tab: 'upload' | 'categories' | 'lessons' | 'sync' = 'upload',
     catId?: string
   ) => {
     navigateTo({
@@ -222,27 +250,42 @@ export default function App() {
       initialTab: tab,
       defaultCategoryId: catId,
     });
-  };
+  }, [navigateTo]);
 
-  // Category Actions
-  const handleAddCategory = (newCat: Category) => {
+  // Category Actions (Directly persisted to Cloud Database)
+  const handleAddCategory = useCallback(async (newCat: Category) => {
     setCategories(prev => [...prev, newCat]);
-  };
+    try {
+      await cloudSync.saveCategory(newCat);
+    } catch (e) {
+      console.error('Failed to sync new category to cloud:', e);
+    }
+  }, []);
 
-  const handleUpdateCategory = (updatedCat: Category) => {
+  const handleUpdateCategory = useCallback(async (updatedCat: Category) => {
     setCategories(prev => prev.map(c => (c.id === updatedCat.id ? updatedCat : c)));
-  };
+    try {
+      await cloudSync.saveCategory(updatedCat);
+    } catch (e) {
+      console.error('Failed to sync updated category to cloud:', e);
+    }
+  }, []);
 
-  const handleDeleteCategory = (categoryId: string) => {
+  const handleDeleteCategory = useCallback(async (categoryId: string) => {
     setCategories(prev => prev.filter(c => c.id !== categoryId));
     setLessons(prev => prev.filter(l => l.categoryId !== categoryId));
     if (activeView.type === 'category_detail' && activeView.categoryId === categoryId) {
       navigateTo({ type: 'categories' }, true);
     }
-  };
+    try {
+      await cloudSync.deleteCategory(categoryId);
+    } catch (e) {
+      console.error('Failed to delete category from cloud:', e);
+    }
+  }, [activeView, navigateTo]);
 
-  // Lesson Actions
-  const handleSaveLesson = (lesson: Lesson) => {
+  // Lesson Actions (Directly persisted to Cloud Database)
+  const handleSaveLesson = useCallback(async (lesson: Lesson) => {
     setLessons(prev => {
       const idx = prev.findIndex(l => l.id === lesson.id);
       if (idx >= 0) {
@@ -252,34 +295,74 @@ export default function App() {
       }
       return [...prev, lesson];
     });
-  };
+    try {
+      await cloudSync.saveLesson(lesson);
+    } catch (e) {
+      console.error('Failed to sync lesson to cloud:', e);
+    }
+  }, []);
 
-  const handleDeleteLesson = (lessonId: string) => {
+  const handleDeleteLesson = useCallback(async (lessonId: string) => {
     setLessons(prev => prev.filter(l => l.id !== lessonId));
-  };
+    try {
+      await cloudSync.deleteLesson(lessonId);
+    } catch (e) {
+      console.error('Failed to delete lesson from cloud:', e);
+    }
+  }, []);
 
-  const handleResetData = () => {
+  const handleTogglePublish = useCallback(async (lessonId: string, isPub: boolean) => {
+    setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, isPublished: isPub } : l));
+    try {
+      await cloudSync.togglePublishLesson(lessonId, isPub);
+    } catch (e) {
+      console.error('Failed to toggle publish on cloud:', e);
+    }
+  }, []);
+
+  const handleToggleApprove = useCallback(async (lessonId: string, isApp: boolean) => {
+    setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, isApproved: isApp } : l));
+    try {
+      await cloudSync.toggleApproveLesson(lessonId, isApp);
+    } catch (e) {
+      console.error('Failed to toggle approve on cloud:', e);
+    }
+  }, []);
+
+  const handleResetData = useCallback(async () => {
     setCategories(INITIAL_CATEGORIES);
     setLessons(INITIAL_LESSONS);
     setHistory([]);
-    localStorage.removeItem(STORAGE_KEY_CATEGORIES);
-    localStorage.removeItem(STORAGE_KEY_LESSONS);
     localStorage.removeItem(STORAGE_KEY_HISTORY);
     navigateTo({ type: 'categories' }, true);
-  };
+    try {
+      await cloudSync.resetCloudToDefaults();
+    } catch (e) {
+      console.error('Failed to reset cloud defaults:', e);
+    }
+  }, [navigateTo]);
 
-  const handleClearAllData = () => {
+  const handleClearAllData = useCallback(async () => {
     setCategories([]);
     setLessons([]);
     setHistory([]);
-    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEY_LESSONS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify([]));
+    localStorage.removeItem(STORAGE_KEY_HISTORY);
     navigateTo({ type: 'categories' }, true);
-  };
+    try {
+      await cloudSync.clearAllCloudData();
+    } catch (e) {
+      console.error('Failed to clear cloud data:', e);
+    }
+  }, [navigateTo]);
+
+  const handleManualSync = useCallback(() => {
+    cloudSync.initRealtimeSync();
+  }, []);
 
   // Calculations for Stats
-  const totalQuestions = lessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
+  const totalQuestions = useMemo(() => {
+    return lessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
+  }, [lessons]);
 
   const isFullscreenView =
     activeView.type === 'admin' ||
@@ -308,12 +391,21 @@ export default function App() {
           totalLessons={lessons.length}
           totalQuestions={totalQuestions}
           historyCount={history.length}
+          syncStatus={syncStatus}
         />
       )}
 
       {/* Main Content Area */}
       <main className="flex-1">
-        {/* VIEW 1: Categories 2-by-2 Grid */}
+        <Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-slate-500">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              <p className="text-xs font-semibold">लोड हो रहा है...</p>
+            </div>
+          }
+        >
+          {/* VIEW 1: Categories 2-by-2 Grid (Instantly shown on start, no login) */}
         {activeView.type === 'categories' && (
           <CategoryGrid
             categories={categories}
@@ -323,10 +415,11 @@ export default function App() {
             }
             onOpenNotes={() => navigateTo({ type: 'notes_hub' })}
             onOpenAdmin={handleOpenAdmin}
+            onStartQuiz={lessonId => navigateTo({ type: 'quiz', lessonId })}
           />
         )}
 
-        {/* VIEW 2: Category Detail & Lessons */}
+        {/* VIEW 2: Category Detail & Lessons (Subject -> Lesson -> Notes / MCQ / Mock) */}
         {activeView.type === 'category_detail' && (() => {
           const currentCategory = categories.find(c => c.id === activeView.categoryId);
           if (!currentCategory) {
@@ -335,7 +428,7 @@ export default function App() {
                 <p className="text-sm text-slate-700">श्रेणी नहीं मिली।</p>
                 <button
                   onClick={() => navigateTo({ type: 'categories' }, true)}
-                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
+                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer"
                 >
                   होम पर जाएं
                 </button>
@@ -379,7 +472,7 @@ export default function App() {
                 <p className="text-sm text-slate-700">लेसन नहीं मिला।</p>
                 <button
                   onClick={() => navigateTo({ type: 'categories' }, true)}
-                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
+                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer"
                 >
                   होम पर जाएं
                 </button>
@@ -395,7 +488,7 @@ export default function App() {
               categoryName={cat?.name || 'अध्ययन'}
               soundEnabled={soundEnabled}
               onFinishQuiz={result => {
-                // Save to persistent test history
+                // Save to local test history
                 setHistory(prev => [result, ...prev]);
                 // Replace quiz state with analysis so pressing back from analysis returns to lessons, not the finished quiz
                 navigateTo({
@@ -424,7 +517,7 @@ export default function App() {
                 <p className="text-sm text-slate-700">लेसन डेटा उपलब्ध नहीं है।</p>
                 <button
                   onClick={() => navigateTo({ type: 'categories' }, true)}
-                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
+                  className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer"
                 >
                   होम पर जाएं
                 </button>
@@ -567,7 +660,7 @@ export default function App() {
           );
         })()}
 
-        {/* VIEW 8: Groq AI Study Tutor (Full Screen with Settings Icon) */}
+        {/* VIEW 8: Groq & Gemini AI Study Tutor */}
         {activeView.type === 'ai_tutor' && (
           <AITutorChat
             initialQuery={activeView.initialQuery}
@@ -575,24 +668,29 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 9: Full Screen Mobile-Fit Admin Data Portal */}
+        {/* VIEW 9: Full Screen Shared Cloud Admin Data Portal */}
         {activeView.type === 'admin' && (
           <AdminPanel
             categories={categories}
             lessons={lessons}
             initialTab={activeView.initialTab || 'upload'}
             defaultCategoryId={activeView.defaultCategoryId}
+            syncStatus={syncStatus}
             onAddCategory={handleAddCategory}
             onUpdateCategory={handleUpdateCategory}
             onDeleteCategory={handleDeleteCategory}
             onSaveLesson={handleSaveLesson}
             onDeleteLesson={handleDeleteLesson}
+            onTogglePublish={handleTogglePublish}
+            onToggleApprove={handleToggleApprove}
             onResetData={handleResetData}
             onClearAllData={handleClearAllData}
+            onManualSync={handleManualSync}
             onNavigateHome={() => navigateBack({ type: 'categories' })}
             onStartQuiz={lessonId => navigateTo({ type: 'quiz', lessonId })}
           />
         )}
+        </Suspense>
       </main>
 
       {/* Floating Action Button (FAB) for Instant Admin Access on desktop when on general views */}

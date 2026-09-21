@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Category, Lesson } from '../types';
 import {
   ArrowLeft,
@@ -8,10 +8,7 @@ import {
   Layers,
   Edit2,
   Trash2,
-  Search,
-  CheckCircle2,
-  Sparkles,
-  ChevronRight
+  Search
 } from 'lucide-react';
 
 interface CategoryDetailProps {
@@ -26,7 +23,7 @@ interface CategoryDetailProps {
   onDeleteLesson: (lessonId: string) => void;
 }
 
-export const CategoryDetail: React.FC<CategoryDetailProps> = ({
+export const CategoryDetail: React.FC<CategoryDetailProps> = React.memo(({
   category,
   lessons,
   initialTab = 'questions',
@@ -41,21 +38,28 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter lessons belonging to this category
-  const categoryLessons = lessons.filter(l => l.categoryId === category.id);
+  const categoryLessons = useMemo(() => {
+    return lessons.filter(l => l.categoryId === category.id);
+  }, [lessons, category.id]);
 
-  // Search filter
-  const filteredLessons = categoryLessons.filter(lesson => {
+  // Filter by Search
+  const filteredLessons = useMemo(() => {
+    if (!searchTerm.trim()) return categoryLessons;
     const query = searchTerm.toLowerCase();
-    const matchesTitle = lesson.title.toLowerCase().includes(query);
-    const matchesDesc = lesson.description?.toLowerCase().includes(query);
-    const matchesNotes = lesson.notes?.toLowerCase().includes(query);
-    return matchesTitle || matchesDesc || matchesNotes;
-  });
+    return categoryLessons.filter(lesson => {
+      const matchesTitle = lesson.title.toLowerCase().includes(query);
+      const matchesDesc = lesson.description?.toLowerCase().includes(query);
+      const matchesNotes = lesson.notes?.toLowerCase().includes(query);
+      return matchesTitle || matchesDesc || matchesNotes;
+    });
+  }, [categoryLessons, searchTerm]);
 
-  const totalQuestions = categoryLessons.reduce(
-    (sum, l) => sum + (l.questions?.length || 0),
-    0
-  );
+  const totalQuestions = useMemo(() => {
+    return categoryLessons.reduce(
+      (sum, l) => sum + (l.questions?.length || 0),
+      0
+    );
+  }, [categoryLessons]);
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4 text-slate-900">
@@ -74,7 +78,7 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
           className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>+ नया पाठ जोड़ें</span>
+          <span>+ नया पाठ / टॉपिक जोड़ें</span>
         </button>
       </div>
 
@@ -106,7 +110,7 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
         </div>
       </div>
 
-      {/* Tabs: Questions vs Notes */}
+      {/* Tabs: Questions/Mock vs Notes */}
       <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-start gap-1">
         <button
           onClick={() => setActiveTab('questions')}
@@ -171,11 +175,18 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
                         {lesson.iconEmoji || '📖'}
                       </span>
                       <div>
-                        {hasNotes && (
-                          <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mb-1">
-                            थ्योरी नोट्स
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          {hasNotes && (
+                            <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                              थ्योरी नोट्स
+                            </span>
+                          )}
+                          {lesson.sharedBy && (
+                            <span className="inline-block text-[9px] font-semibold text-slate-600 bg-slate-100 px-1 py-0.2 rounded">
+                              शेयर्ड
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                           {lesson.title}
                         </h3>
@@ -240,7 +251,7 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
                       }`}
                     >
                       <Play className="w-3 h-3 fill-current" />
-                      <span>टेस्ट दें</span>
+                      <span>मॉक टेस्ट दें</span>
                     </button>
                   </div>
                 </div>
@@ -268,4 +279,6 @@ export const CategoryDetail: React.FC<CategoryDetailProps> = ({
       )}
     </div>
   );
-};
+});
+
+export default CategoryDetail;

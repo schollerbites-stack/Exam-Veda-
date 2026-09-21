@@ -240,7 +240,7 @@ function getBuiltinKnowledgeResponse(query: string): string {
     `📌 **परीक्षा टिप:** अपने अध्ययन में हमेशा पिछले वर्षों के प्रश्नपत्रों को आधार बनाकर रिवीजन जारी रखें। मुझसे किसी भी विषय पर बेझिझक प्रश्न पूछें!`;
 }
 
-export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNavigateHome }) => {
+export const AITutorChat: React.FC<AITutorChatProps> = React.memo(({ initialQuery, onNavigateHome }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg_welcome',
@@ -1792,4 +1792,6 @@ export const AITutorChat: React.FC<AITutorChatProps> = ({ initialQuery, onNaviga
       )}
     </div>
   );
-};
+});
+
+export default AITutorChat;

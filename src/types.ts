@@ -21,6 +21,9 @@ export interface Lesson {
   questions: Question[];
   rawText?: string;
   notes?: string; // Rich study notes & theory summary
+  isPublished?: boolean; // Visibility control (Publish / Hide)
+  isApproved?: boolean; // Content approval status
+  sharedBy?: string; // e.g., 'Community' | 'Admin' | 'Teacher'
   createdAt: number;
   updatedAt?: number;
 }
@@ -31,7 +34,9 @@ export interface Category {
   iconEmoji: string;
   color: string; // e.g., 'amber', 'emerald', 'sky', 'purple', 'rose', 'indigo'
   description?: string;
+  isPublished?: boolean; // Visibility control (Publish / Hide)
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface QuizResult {
@@ -58,4 +63,14 @@ export type ActiveView =
   | { type: 'quiz_analysis'; result: QuizResult; lessonId?: string }
   | { type: 'history' }
   | { type: 'ai_tutor'; initialQuery?: string }
-  | { type: 'admin'; initialTab?: 'upload' | 'categories' | 'lessons'; defaultCategoryId?: string };
+  | { type: 'admin'; initialTab?: 'upload' | 'categories' | 'lessons' | 'sync'; defaultCategoryId?: string };
+
+export interface CloudSyncStatus {
+  isConnected: boolean;
+  isSyncing: boolean;
+  isOnline: boolean;
+  lastSyncedAt: number | null;
+  totalCloudLessons: number;
+  totalCloudCategories: number;
+  error?: string | null;
+}

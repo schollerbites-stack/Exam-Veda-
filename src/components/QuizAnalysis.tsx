@@ -12,7 +12,7 @@ interface QuizAnalysisProps {
   onAskAI?: (query: string) => void;
 }
 
-export const QuizAnalysis: React.FC<QuizAnalysisProps> = ({
+export const QuizAnalysis: React.FC<QuizAnalysisProps> = React.memo(({
   result,
   lesson,
   onRetake,
@@ -381,4 +381,6 @@ export const QuizAnalysis: React.FC<QuizAnalysisProps> = ({
       </div>
     </div>
   );
-};
+});
+
+export default QuizAnalysis;

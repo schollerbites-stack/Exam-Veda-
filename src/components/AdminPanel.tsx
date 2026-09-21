@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, Lesson, Question } from '../types';
+import { Category, Lesson, Question, CloudSyncStatus } from '../types';
 import { parseRawMCQText, formatQuestionsToRaw } from '../utils/parser';
 import {
   Upload,
@@ -18,21 +18,30 @@ import {
   Eye,
   FileText,
   BookOpen,
-  Play
+  Play,
+  Cloud,
+  RefreshCw,
+  EyeOff,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 
 interface AdminPanelProps {
   categories: Category[];
   lessons: Lesson[];
-  initialTab?: 'upload' | 'categories' | 'lessons';
+  initialTab?: 'upload' | 'categories' | 'lessons' | 'sync';
   defaultCategoryId?: string;
+  syncStatus?: CloudSyncStatus;
   onAddCategory: (category: Category) => void;
   onUpdateCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: string) => void;
   onSaveLesson: (lesson: Lesson) => void;
   onDeleteLesson: (lessonId: string) => void;
+  onTogglePublish?: (lessonId: string, isPublished: boolean) => void;
+  onToggleApprove?: (lessonId: string, isApproved: boolean) => void;
   onResetData: () => void;
   onClearAllData?: () => void;
+  onManualSync?: () => void;
   onNavigateHome: () => void;
   onStartQuiz?: (lessonId: string) => void;
 }
@@ -53,22 +62,26 @@ D. भाग IV-A
 Ans. B
 Exp: भाग III (अनुच्छेद 12 से 35) में मौलिक अधिकारों का उल्लेख है, जिसे मैग्नाकार्टा कहा जाता है।`;
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({
+export const AdminPanel: React.FC<AdminPanelProps> = React.memo(({
   categories,
   lessons,
   initialTab = 'upload',
   defaultCategoryId,
+  syncStatus,
   onAddCategory,
   onUpdateCategory,
   onDeleteCategory,
   onSaveLesson,
   onDeleteLesson,
+  onTogglePublish,
+  onToggleApprove,
   onResetData,
   onClearAllData,
+  onManualSync,
   onNavigateHome,
   onStartQuiz,
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'categories' | 'lessons'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'upload' | 'categories' | 'lessons' | 'sync'>(initialTab);
 
   // Lesson Form State
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
@@ -80,6 +93,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [lessonEmoji, setLessonEmoji] = useState('📖');
   const [lessonNotes, setLessonNotes] = useState('');
   const [rawMCQText, setRawMCQText] = useState('');
+  const [isPublished, setIsPublished] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [lessonSaveSuccess, setLessonSaveSuccess] = useState(false);
 
@@ -96,6 +110,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Search filter for lessons
   const [lessonSearch, setLessonSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Sync default category if categories change
   useEffect(() => {
@@ -113,7 +128,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
 
     if (!selectedCategoryId) {
-      alert('कृपया पहले एक श्रेणी चुनें।');
+      alert('कृपया पहले एक विषय / श्रेणी चुनें।');
       return;
     }
     if (!lessonTitle.trim()) {
@@ -134,6 +149,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       notes: lessonNotes.trim() || undefined,
       questions: parseResult.questions,
       rawText: rawMCQText,
+      isPublished: isPublished,
+      isApproved: true,
+      sharedBy: 'Admin',
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -159,6 +177,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setLessonDesc(lesson.description || '');
     setLessonEmoji(lesson.iconEmoji || '📖');
     setLessonNotes(lesson.notes || '');
+    setIsPublished(lesson.isPublished !== false);
     setRawMCQText(lesson.rawText || formatQuestionsToRaw(lesson.questions || []));
     setActiveTab('upload');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -180,6 +199,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           iconEmoji: catEmoji,
           color: catColor,
           description: catDesc.trim() || undefined,
+          updatedAt: Date.now(),
         });
       }
     } else {
@@ -189,7 +209,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         iconEmoji: catEmoji,
         color: catColor,
         description: catDesc.trim() || undefined,
+        isPublished: true,
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
       onAddCategory(newCat);
       setSelectedCategoryId(newCat.id);
@@ -222,6 +244,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Filter lessons
   const filteredLessons = lessons.filter(l => {
+    if (categoryFilter !== 'all' && l.categoryId !== categoryFilter) {
+      return false;
+    }
     return (
       l.title.toLowerCase().includes(lessonSearch.toLowerCase()) ||
       (l.description && l.description.toLowerCase().includes(lessonSearch.toLowerCase()))
@@ -242,13 +267,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span>होम</span>
           </button>
 
-          {/* Title */}
+          {/* Title & Cloud Indicator */}
           <div className="text-center flex-1">
-            <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
-              एडमिन डेटा पोर्टल
-            </h1>
+            <div className="flex items-center justify-center gap-1.5">
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                शेयर्ड क्लाउड एडमिन पोर्टल
+              </h1>
+              {syncStatus?.isConnected && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  क्लाउड लाइव
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-slate-600 hidden sm:block leading-none mt-0.5">
-              विषय, पाठ, अध्ययन नोट्स व प्रश्न प्रबंधन
+              मल्टी-यूज़र शेयर्ड डेटाबेस • विषय, पाठ, नोट्स व प्रश्न प्रबंधन
             </p>
           </div>
 
@@ -267,7 +300,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Main Container */}
       <div className="max-w-4xl mx-auto px-3 sm:px-5 py-3 space-y-3">
         {/* Navigation Tabs */}
-        <div className="bg-white p-0.5 rounded-xl border border-slate-200 shadow-xs grid grid-cols-3 gap-0.5 text-xs font-bold">
+        <div className="bg-white p-0.5 rounded-xl border border-slate-200 shadow-xs grid grid-cols-4 gap-0.5 text-xs font-bold">
           <button
             onClick={() => setActiveTab('upload')}
             className={`py-2 px-1.5 rounded-lg transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer text-center ${
@@ -278,7 +311,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           >
             <Upload className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">
-              {editingLessonId ? 'एडिट पाठ' : '+ नया पाठ जोड़ें'}
+              {editingLessonId ? 'एडिट पाठ' : '+ नया पाठ'}
             </span>
           </button>
 
@@ -291,7 +324,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }`}
           >
             <FolderKanban className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">सभी पाठ ({lessons.length})</span>
+            <span className="truncate">पाठ ({lessons.length})</span>
           </button>
 
           <button
@@ -305,9 +338,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <Layers className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">श्रेणियां ({categories.length})</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('sync')}
+            className={`py-2 px-1.5 rounded-lg transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer text-center ${
+              activeTab === 'sync'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Cloud className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">क्लाउड सिंक</span>
+          </button>
         </div>
 
-        {/* TAB 1: LESSON FORM */}
+        {/* TAB 1: LESSON FORM (Subject -> Lesson -> Phase (optional) -> Notes / MCQ / Mock) */}
         {activeTab === 'upload' && (
           <form onSubmit={handleSaveLesson} className="space-y-4">
             {editingLessonId && (
@@ -332,20 +377,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             )}
 
-            {/* Step 1: Basic Info */}
+            {/* Step 1: Subject & Lesson Details */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
                   1
                 </span>
-                विषय व पाठ विवरण (Subject & Lesson Details)
+                संरचना विवरण (Subject → Lesson)
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Select Category */}
+                {/* Select Category (Subject) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    1. विषय / श्रेणी चुनें (Subject) *
+                    1. मुख्य विषय / श्रेणी (Subject) *
                   </label>
                   <select
                     value={selectedCategoryId}
@@ -368,7 +413,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. सिंधु घाटी सभ्यता या मौलिक अधिकार"
+                    placeholder="उदा. सिंधु घाटी सभ्यता"
                     value={lessonTitle}
                     onChange={e => setLessonTitle(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-900"
@@ -377,7 +422,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              {/* Emoji & Description */}
+              {/* Emoji & Description & Visibility */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
@@ -509,7 +554,7 @@ Exp: विस्तृत व्याख्या यहाँ...`}
             {lessonSaveSuccess && (
               <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-                <span>पाठ सफलतापूर्वक सहेज लिया गया!</span>
+                <span>पाठ शेयर्ड क्लाउड डेटाबेस में सफलतापूर्वक सहेज लिया गया!</span>
               </div>
             )}
 
@@ -524,8 +569,8 @@ Exp: विस्तृत व्याख्या यहाँ...`}
                     : 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 }`}
               >
-                <Check className="w-5 h-5" />
-                <span>{editingLessonId ? 'अपडेट सुरक्षित करें' : 'पाठ सहेजें और जोड़ें'}</span>
+                <Cloud className="w-5 h-5" />
+                <span>{editingLessonId ? 'क्लाउड डेटाबेस में अपडेट करें' : 'क्लाउड में सहेजें और शेयर करें'}</span>
               </button>
             </div>
           </form>
@@ -535,8 +580,22 @@ Exp: विस्तृत व्याख्या यहाँ...`}
         {activeTab === 'lessons' && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="text-xs font-bold text-slate-800">
-                कुल उपलब्ध पाठ: {filteredLessons.length}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800">
+                  कुल शेयर्ड पाठ: {filteredLessons.length}
+                </span>
+                <select
+                  value={categoryFilter}
+                  onChange={e => setCategoryFilter(e.target.value)}
+                  className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold"
+                >
+                  <option value="all">सभी विषय</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <input
                 type="text"
@@ -562,9 +621,14 @@ Exp: विस्तृत व्याख्या यहाँ...`}
                         {lesson.iconEmoji || '📖'}
                       </span>
                       <div>
-                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
-                          {cat?.name || 'विषय'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                            {cat?.name || 'विषय'}
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            शेयर्ड
+                          </span>
+                        </div>
                         <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
                           {lesson.title}
                         </h3>
@@ -592,11 +656,12 @@ Exp: विस्तृत व्याख्या यहाँ...`}
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`क्या आप "${lesson.title}" को हटाना चाहते हैं?`)) {
+                          if (confirm(`क्या आप "${lesson.title}" को क्लाउड डेटाबेस से हटाना चाहते हैं?`)) {
                             onDeleteLesson(lesson.id);
                           }
                         }}
                         className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                        title="क्लाउड से हटाएं"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -623,7 +688,7 @@ Exp: विस्तृत व्याख्या यहाँ...`}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    श्रेणी का नाम *
+                    श्रेणी / विषय का नाम *
                   </label>
                   <input
                     type="text"
@@ -661,7 +726,7 @@ Exp: विस्तृत व्याख्या यहाँ...`}
             </form>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-              <h3 className="text-xs font-bold text-slate-700">मौजूदा श्रेणियां ({categories.length})</h3>
+              <h3 className="text-xs font-bold text-slate-700">मौजूदा शेयर्ड श्रेणियां ({categories.length})</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {categories.map(cat => (
                   <div
@@ -681,7 +746,7 @@ Exp: विस्तृत व्याख्या यहाँ...`}
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`क्या आप श्रेणी "${cat.name}" को हटाना चाहते हैं?`)) {
+                          if (confirm(`क्या आप श्रेणी "${cat.name}" को क्लाउड से हटाना चाहते हैं?`)) {
                             onDeleteCategory(cat.id);
                           }
                         }}
@@ -696,6 +761,88 @@ Exp: विस्तृत व्याख्या यहाँ...`}
             </div>
           </div>
         )}
+
+        {/* TAB 4: CLOUD SYNC & MULTI-USER SHARING STATUS */}
+        {activeTab === 'sync' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                <Cloud className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  क्लाउड डेटाबेस व मल्टी-यूज़र शेयरिंग स्टेटस
+                </h2>
+                <p className="text-xs text-slate-600">
+                  Firebase Firestore शेयर्ड डेटाबेस के साथ रियल-टाइम एक्टिव कनेक्शन
+                </p>
+              </div>
+            </div>
+
+            {/* Sync Status Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-bold text-slate-600">कनेक्शन स्थिति</span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-sm font-bold text-emerald-800">
+                    {syncStatus?.isConnected ? 'ऑनलाइन कनेक्टेड' : 'कनेक्ट हो रहा है...'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-bold text-slate-600">शेयर्ड श्रेणियां (Subjects)</span>
+                <p className="text-lg font-bold text-slate-900 mt-0.5">{categories.length}</p>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-bold text-slate-600">शेयर्ड पाठ (Lessons)</span>
+                <p className="text-lg font-bold text-slate-900 mt-0.5">{lessons.length}</p>
+              </div>
+            </div>
+
+            {/* How Multi-User Sharing Works */}
+            <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+              <h3 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-indigo-600" />
+                <span>मल्टी-यूज़र कंटेंट शेयरिंग कैसे काम करता है?</span>
+              </h3>
+              <ul className="text-xs text-indigo-900 space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li>
+                  <strong>User 1 (या कोई भी एडमिन)</strong> जब कोई नया विषय, पाठ, थ्योरी नोट्स या MCQs अपलोड करता है, तो वह सीधे Firebase Cloud Database में सुरक्षित होता है।
+                </li>
+                <li>
+                  <strong>User 2 या अन्य सभी छात्र</strong> ऐप खोलने या रीफ्रेश करने पर वही नया कंटेंट सीधे देख सकते हैं और टेस्ट दे सकते हैं।
+                </li>
+                <li>
+                  <strong>नो-लॉगिन प्राइवेसी:</strong> छात्रों को व्यक्तिगत अकाउंट या पासवर्ड की जरूरत नहीं है—वे सीधे सभी शेयर्ड शैक्षिक सामग्री का उपयोग कर सकते हैं।
+                </li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={onManualSync}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>ताज़ा डेटा सिंक करें (Sync Now)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-slate-200"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
+                <span>क्लाउड डेटा डिफ़ॉल्ट रीसेट करें</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Reset Confirmation Modal */}
@@ -704,10 +851,10 @@ Exp: विस्तृत व्याख्या यहाँ...`}
           <div className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <RotateCcw className="w-5 h-5 text-indigo-600" />
-              <span>डेटा रीसेट</span>
+              <span>क्लाउड डेटा रीसेट</span>
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              क्या आप डिफ़ॉल्ट विषय व लेसन्स को पुनः लोड करना चाहते हैं?
+              क्या आप शेयर्ड क्लाउड डेटाबेस को डिफ़ॉल्ट विषयों व लेसन्स के साथ पुनः रीसेट करना चाहते हैं? इससे सभी यूज़र्स के पास मानक डेटा सेट उपलब्ध हो जाएगा।
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
@@ -731,4 +878,6 @@ Exp: विस्तृत व्याख्या यहाँ...`}
       )}
     </div>
   );
-};
+});
+
+export default AdminPanel;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Category, Lesson } from '../types';
 import {
   BookOpen,
@@ -28,7 +28,7 @@ interface NotesHubProps {
   onNavigateHome: () => void;
 }
 
-export const NotesHub: React.FC<NotesHubProps> = ({
+export const NotesHub: React.FC<NotesHubProps> = React.memo(({
   categories,
   lessons,
   selectedCategoryId,
@@ -44,25 +44,27 @@ export const NotesHub: React.FC<NotesHubProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter lessons by selected category (or 'saved')
-  const filteredLessons = lessons.filter(lesson => {
-    // 1. Category Filter
-    if (activeCategoryId === 'saved') {
-      if (!savedOfflineNoteIds.includes(lesson.id)) return false;
-    } else if (activeCategoryId !== 'all' && lesson.categoryId !== activeCategoryId) {
-      return false;
-    }
+  const filteredLessons = useMemo(() => {
+    return lessons.filter(lesson => {
+      // 1. Category Filter
+      if (activeCategoryId === 'saved') {
+        if (!savedOfflineNoteIds.includes(lesson.id)) return false;
+      } else if (activeCategoryId !== 'all' && lesson.categoryId !== activeCategoryId) {
+        return false;
+      }
 
-    // 2. Search Filter
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      const matchTitle = lesson.title.toLowerCase().includes(q);
-      const matchDesc = lesson.description?.toLowerCase().includes(q);
-      const matchNotes = lesson.notes?.toLowerCase().includes(q);
-      return matchTitle || matchDesc || matchNotes;
-    }
+      // 2. Search Filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchTitle = lesson.title.toLowerCase().includes(q);
+        const matchDesc = lesson.description?.toLowerCase().includes(q);
+        const matchNotes = lesson.notes?.toLowerCase().includes(q);
+        return matchTitle || matchDesc || matchNotes;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [lessons, activeCategoryId, savedOfflineNoteIds, searchTerm]);
 
   const getCategoryForLesson = (catId: string) => {
     return categories.find(c => c.id === catId);
@@ -319,4 +321,6 @@ export const NotesHub: React.FC<NotesHubProps> = ({
       )}
     </div>
   );
-};
+});
+
+export default NotesHub;

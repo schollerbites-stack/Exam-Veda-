@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, History, Sparkles, PlusCircle, BookOpen } from 'lucide-react';
+import { Home, History, Sparkles, PlusCircle, BookOpen, Zap } from 'lucide-react';
 import { ActiveView } from '../types';
 
 interface BottomNavProps {
@@ -9,7 +9,7 @@ interface BottomNavProps {
   historyCount: number;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({
+export const BottomNav: React.FC<BottomNavProps> = React.memo(({
   activeView,
   onNavigate,
   onOpenAdmin,
@@ -22,12 +22,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const isAdmin = activeView.type === 'admin';
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-md py-1 px-1.5 sm:px-2">
-      <div className="max-w-md mx-auto flex items-center justify-between">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-md py-1 px-1 sm:px-2">
+      <div className="max-w-md mx-auto flex items-center justify-around">
         {/* 1. Home / Categories */}
         <button
           onClick={() => onNavigate({ type: 'categories' })}
-          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer ${
+          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer active:scale-95 ${
             isHome
               ? 'text-indigo-600 font-bold'
               : 'text-slate-700 hover:text-slate-950'
@@ -46,7 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* 2. Notes Section */}
         <button
           onClick={() => onNavigate({ type: 'notes_hub' })}
-          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer ${
+          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer active:scale-95 ${
             isNotes
               ? 'text-indigo-600 font-bold'
               : 'text-slate-700 hover:text-slate-950'
@@ -66,7 +66,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* 3. Record / Test History */}
         <button
           onClick={() => onNavigate({ type: 'history' })}
-          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all relative cursor-pointer ${
+          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all relative cursor-pointer active:scale-95 ${
             isHistory
               ? 'text-indigo-600 font-bold'
               : 'text-slate-700 hover:text-slate-950'
@@ -90,7 +90,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* 4. Veda AI Multi-Agent Study Tutor */}
         <button
           onClick={() => onNavigate({ type: 'ai_tutor' })}
-          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer ${
+          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer active:scale-95 ${
             isAITutor
               ? 'text-indigo-600 font-bold'
               : 'text-slate-700 hover:text-slate-950'
@@ -114,7 +114,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* 5. Admin Portal (+) */}
         <button
           onClick={() => onOpenAdmin('upload')}
-          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer ${
+          className={`flex flex-col items-center py-0.5 px-2 rounded-lg transition-all cursor-pointer active:scale-95 ${
             isAdmin
               ? 'text-indigo-600 font-bold'
               : 'text-slate-700 hover:text-slate-950'
@@ -136,5 +136,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       </div>
     </nav>
   );
-};
+});
 
+export default BottomNav;

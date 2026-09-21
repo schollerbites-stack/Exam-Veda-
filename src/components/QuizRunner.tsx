@@ -11,7 +11,7 @@ interface QuizRunnerProps {
   onExitQuiz: () => void;
 }
 
-export const QuizRunner: React.FC<QuizRunnerProps> = ({
+export const QuizRunner: React.FC<QuizRunnerProps> = React.memo(({
   lesson,
   categoryName,
   soundEnabled,
@@ -404,4 +404,6 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
       )}
     </div>
   );
-};
+});
+
+export default QuizRunner;

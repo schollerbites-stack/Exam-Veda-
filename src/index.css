@@ -15,6 +15,8 @@
     background-color: #f8fafc;
     color: #0f172a;
     letter-spacing: -0.01em;
+    touch-action: manipulation;
+    scroll-behavior: smooth;
   }
 
   @media (min-width: 640px) {
@@ -37,6 +39,14 @@
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
+  }
+
+  /* Optimize button and touch responses */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Ensure text is always dark and sharp, never blurry or faded */
@@ -44,6 +54,14 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Hardware accelerated smooth transitions */
+.smooth-press {
+  transition: transform 0.1s ease-out, background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.smooth-press:active {
+  transform: scale(0.97);
 }
 
 /* Custom scrollbar */

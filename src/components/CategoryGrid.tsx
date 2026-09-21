@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Category, Lesson } from '../types';
-import { ChevronRight, Plus, BookOpen, Layers, Search, Sparkles } from 'lucide-react';
+import { ChevronRight, Plus, BookOpen, Layers, Search, Sparkles, Zap, Clock, Play } from 'lucide-react';
 
 interface CategoryGridProps {
   categories: Category[];
@@ -8,32 +8,44 @@ interface CategoryGridProps {
   onSelectCategory: (categoryId: string, initialTab?: 'questions' | 'notes') => void;
   onOpenNotes?: () => void;
   onOpenAdmin: (initialTab?: 'upload' | 'categories' | 'lessons', defaultCategoryId?: string) => void;
+  onStartQuiz?: (lessonId: string) => void;
 }
 
-export const CategoryGrid: React.FC<CategoryGridProps> = ({
+export const CategoryGrid: React.FC<CategoryGridProps> = React.memo(({
   categories,
   lessons,
   onSelectCategory,
   onOpenNotes,
   onOpenAdmin,
+  onStartQuiz,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredCategories = categories.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Memoize search filtered categories
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm.trim()) return categories;
+    const q = searchTerm.toLowerCase();
+    return categories.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [categories, searchTerm]);
 
-  const getCategoryStats = (categoryId: string) => {
-    const categoryLessons = lessons.filter(l => l.categoryId === categoryId);
-    const totalMCQs = categoryLessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
-    const notesCount = categoryLessons.filter(l => Boolean(l.notes)).length;
-    return {
-      lessonCount: categoryLessons.length,
-      mcqCount: totalMCQs,
-      notesCount,
-    };
-  };
+  // Pre-calculate category statistics for O(1) rendering speed
+  const statsMap = useMemo(() => {
+    const map = new Map<string, { lessonCount: number; mcqCount: number; notesCount: number }>();
+    categories.forEach(cat => {
+      const catLessons = lessons.filter(l => l.categoryId === cat.id);
+      const mcqCount = catLessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
+      const notesCount = catLessons.filter(l => Boolean(l.notes)).length;
+      map.set(cat.id, {
+        lessonCount: catLessons.length,
+        mcqCount,
+        notesCount,
+      });
+    });
+    return map;
+  }, [categories, lessons]);
 
   const getCardColorClasses = (color: string) => {
     switch (color) {
@@ -76,7 +88,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4">
+    <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-5 space-y-4 text-slate-900">
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
@@ -106,7 +118,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
 
           <button
             onClick={() => onOpenAdmin('categories')}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200 transition-colors cursor-pointer"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl border border-indigo-200 transition-colors cursor-pointer active:scale-97"
             title="नई श्रेणी जोड़ें"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -116,7 +128,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
       </div>
 
       {/* Section Switcher: Questions/Quizzes vs Study Notes */}
-      <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-2">
+      <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-1 w-full sm:w-auto">
           <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs">
             <Layers className="w-3.5 h-3.5" />
@@ -126,37 +138,37 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
           {onOpenNotes && (
             <button
               onClick={onOpenNotes}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-150 transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-150 transition-all cursor-pointer active:scale-98"
             >
               <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-              <span>📖 अध्ययन नोट्स (Notes)</span>
+              <span>📖 अध्ययन नोट्स</span>
             </button>
           )}
         </div>
 
         <div className="hidden sm:block text-xs text-slate-500 font-medium pr-2">
-          {lessons.length} कुल पाठ • छात्र नोट्स व क्विज़ दोनों एक साथ कर सकते हैं
+          {lessons.length} कुल पाठ • शेयर्ड क्लाउड डेटाबेस
         </div>
       </div>
 
-      {/* 2-by-2 Pair Grid as requested by user ("2- 2 ke pair me arrange hogi neeche tkk") */}
+      {/* 2-by-2 Pair Grid */}
       {filteredCategories.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {filteredCategories.map((category, index) => {
-            const stats = getCategoryStats(category.id);
+            const stats = statsMap.get(category.id) || { lessonCount: 0, mcqCount: 0, notesCount: 0 };
             const style = getCardColorClasses(category.color);
 
             return (
               <div
                 key={category.id}
-                className={`group relative rounded-xl border border-slate-200 p-4 sm:p-4.5 transition-all duration-200 hover:shadow-md cursor-pointer flex flex-col justify-between ${style.bg}`}
+                className={`group relative rounded-2xl border border-slate-200 p-4 sm:p-4.5 transition-all duration-150 hover:shadow-md cursor-pointer flex flex-col justify-between active:scale-[0.99] ${style.bg}`}
                 onClick={() => onSelectCategory(category.id)}
               >
                 {/* Top Section */}
                 <div>
                   <div className="flex items-start justify-between gap-2.5 mb-2.5">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-2xl sm:text-3xl p-2 rounded-xl bg-white shadow-xs border border-slate-200 group-hover:scale-105 transition-transform">
+                      <span className="text-2xl sm:text-3xl p-2 rounded-xl bg-white shadow-xs border border-slate-200 group-hover:scale-105 transition-transform shrink-0">
                         {category.iconEmoji || '📚'}
                       </span>
                       <div>
@@ -207,7 +219,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
                         e.stopPropagation();
                         onSelectCategory(category.id, 'notes');
                       }}
-                      className="px-2 py-0.5 rounded-md text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-2 py-0.5 rounded-md text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
                       title="इस श्रेणी के नोट्स पढ़ें"
                     >
                       <BookOpen className="w-3 h-3" />
@@ -220,7 +232,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
                         e.stopPropagation();
                         onOpenAdmin('upload', category.id);
                       }}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium border border-transparent transition-colors ${style.btnHover}`}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium border border-transparent transition-colors active:scale-95 ${style.btnHover}`}
                       title="इस श्रेणी में नया लेसन अपलोड करें"
                     >
                       + लेसन
@@ -247,7 +259,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
           </p>
           <button
             onClick={() => onOpenAdmin('categories')}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             नई श्रेणी बनाएं
@@ -256,4 +268,6 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
       )}
     </div>
   );
-};
+});
+
+export default CategoryGrid;
